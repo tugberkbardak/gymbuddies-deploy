@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { Search, Plus, Trophy, Users } from "lucide-react"
+import { Search, Plus, Trophy, Users, Crown } from "lucide-react"
 import Link from "next/link"
 
 // Mock data - would come from database in real implementation
@@ -52,9 +52,46 @@ const groupsData = [
   },
 ]
 
-export function GroupsTab() {
+interface GroupsTabProps {
+  isPremium?: boolean
+  userHasPremium?: boolean
+}
+
+export function GroupsTab({ isPremium = false, userHasPremium = false }: GroupsTabProps) {
   const [searchQuery, setSearchQuery] = useState("")
 
+  // If this is a premium feature and user doesn't have premium, show the premium overlay
+  if (isPremium && !userHasPremium) {
+    return (
+      <div className="space-y-6">
+        {/* Premium feature overlay */}
+        <div className="relative bg-background rounded-lg p-6">
+          {/* Premium content */}
+          <div className="bg-background border rounded-lg p-8 shadow-lg max-w-md mx-auto">
+            <div className="mb-6 flex justify-center">
+              <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center">
+                <Crown className="h-8 w-8 text-amber-500" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold mb-2 text-center">Premium Feature</h3>
+            <p className="text-muted-foreground mb-6 text-center">
+              Groups is a premium feature that allows you to create and join workout groups to compete with friends and
+              stay motivated.
+            </p>
+            <div className="space-y-3">
+              <Badge className="mx-auto py-1.5 px-3 text-sm flex justify-center w-fit">Coming Soon!</Badge>
+              <p className="text-sm text-muted-foreground text-center">
+                Premium subscription plans are currently in development and will be available soon. Stay tuned for
+                updates!
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Regular view for users with premium access
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

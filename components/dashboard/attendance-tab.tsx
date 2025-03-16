@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Camera, MapPin, Upload, Loader2 } from "lucide-react"
+import { Camera, MapPin, Upload, Loader2, Building2 } from "lucide-react"
 import { AttendanceList } from "@/components/dashboard/attendance-list"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
@@ -16,6 +16,7 @@ export function AttendanceTab() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationName, setLocationName] = useState("")
+  const [gymName, setGymName] = useState("")
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
 
@@ -32,6 +33,8 @@ export function AttendanceTab() {
   const getLocation = () => {
     setIsLoadingLocation(true)
     setLocationError(null)
+    // Reset location name when getting a new location
+    setLocationName("")
 
     if (!navigator.geolocation) {
       setLocationError("Geolocation is not supported by your browser")
@@ -81,6 +84,7 @@ export function AttendanceTab() {
     setSelectedImage(null)
     setLocation(null)
     setLocationName("")
+    setGymName("")
   }
 
   const getMapLink = () => {
@@ -92,9 +96,16 @@ export function AttendanceTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <h2 className="text-2xl font-bold tracking-tight">Gym Attendance</h2>
-        <Button onClick={() => setShowForm(true)}>Record Attendance</Button>
+        
+        <Button
+          onClick={() => setShowForm(true)}
+          size="sm"
+          className="text-sm px-3 py-1 h-auto sm:text-base sm:px-4 sm:py-2 sm:h-10"
+        >
+          Record Attendance
+        </Button>
       </div>
 
       {showForm && (
@@ -108,54 +119,85 @@ export function AttendanceTab() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    <label htmlFor="location" className="text-sm font-medium">
-                      Gym Location
-                    </label>
+                <div className="space-y-4">
+                  {/* Gym Name Field */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      <label htmlFor="gymName" className="text-sm font-medium">
+                        Gym Name
+                      </label>
+                    </div>
+                    <Input
+                      id="gymName"
+                      placeholder="Enter the name of your gym"
+                      required
+                      value={gymName}
+                      onChange={(e) => setGymName(e.target.value)}
+                    />
                   </div>
 
-                  {locationError && (
-                    <Alert variant="destructive" className="mb-2">
-                      <AlertDescription>{locationError}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
-                      <Input
-                        id="location"
-                        placeholder="Enter gym name or address"
-                        required
-                        value={locationName}
-                        onChange={(e) => setLocationName(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button type="button" variant="outline" onClick={getLocation} disabled={isLoadingLocation}>
-                        {isLoadingLocation ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <MapPin className="h-4 w-4" />
-                        )}
-                      </Button>
+                  {/* Location Field */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      <label htmlFor="location" className="text-sm font-medium">
+                        Location
+                      </label>
                     </div>
 
-                    {location && (
-                      <div className="text-xs text-muted-foreground">
-                        <span>
-                          Coordinates: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                        </span>
-                        <a
-                          href={getMapLink()}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ml-2 text-primary underline"
-                        >
-                          View on map
-                        </a>
-                      </div>
+                    {locationError && (
+                      <Alert variant="destructive" className="mb-2">
+                        <AlertDescription>{locationError}</AlertDescription>
+                      </Alert>
                     )}
+
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <Input
+                          id="location"
+                          placeholder="Your current location (auto-detected)"
+                          required
+                          value={locationName}
+                          onChange={(e) => setLocationName(e.target.value)}
+                          className="flex-1"
+                          readOnly={location !== null}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={getLocation}
+                          disabled={isLoadingLocation}
+                          title={location ? "Refresh location" : "Get current location"}
+                        >
+                          {isLoadingLocation ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <MapPin className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+
+                      {location && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          <span className="flex items-center">
+                            <span className="text-amber-500 mr-1">•</span>
+                            Location is locked for accuracy. If incorrect, click the location button again.
+                          </span>
+                          <span>
+                            Coordinates: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                          </span>
+                          <a
+                            href={getMapLink()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-2 text-primary underline"
+                          >
+                            View on map
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -215,11 +257,12 @@ export function AttendanceTab() {
                   setSelectedImage(null)
                   setLocation(null)
                   setLocationName("")
+                  setGymName("")
                 }}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={!location || !selectedImage}>
+              <Button type="submit" disabled={!location || !selectedImage || !gymName.trim()}>
                 Submit
               </Button>
             </CardFooter>
