@@ -73,7 +73,7 @@ export default function LandingPage() {
         <div className="w-full max-w-md mx-auto mt-8">
           <div className="relative aspect-square w-full">
             <Image
-              src="/placeholder.svg?height=500&width=500"
+              src="gymimage.png"
               alt="People working out at the gym"
               fill
               className="object-cover rounded-lg shadow-lg"
