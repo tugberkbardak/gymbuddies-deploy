@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import { ClerkProvider } from "@clerk/nextjs"
 import { Inter } from "next/font/google"
 import "@/app/globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -11,8 +10,14 @@ export const metadata: Metadata = {
   title: "GymBuddies - Track Your Gym Progress With Friends",
   description: "Record your gym attendance, share your progress with friends, and compete in groups to stay motivated.",
   icons: {
-    icon: [{ url: "/favicon.ico" }, { url: "/icon.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: ["/favicon.ico"],
+    apple: [{ url: "/apple-icon.png" }],
   },
+  manifest: "/manifest.json",
 }
 
 export default function RootLayout({
@@ -22,15 +27,14 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
+      <html lang="en">
         <head>
+          <link rel="shortcut icon" href="/favicon.ico" />
           <link rel="icon" href="/favicon.ico" sizes="any" />
+          <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+          <link rel="apple-touch-icon" href="/apple-icon.png" />
         </head>
-        <body className={inter.className}>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem enableColorScheme={false}>
-            {children}
-          </ThemeProvider>
-        </body>
+        <body className={`${inter.className} bg-black text-white`}>{children}</body>
       </html>
     </ClerkProvider>
   )
