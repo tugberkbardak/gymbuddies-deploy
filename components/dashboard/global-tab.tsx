@@ -1,90 +1,96 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Calendar, ExternalLink, Building2 } from "lucide-react"
+import { MapPin, Calendar, ExternalLink, Building2, Loader2 } from "lucide-react"
+import { getGlobalAttendance } from "@/actions/attendance-actions"
+import { formatDistanceToNow } from "date-fns"
 
-// Mock data - would come from database in real implementation
-const globalAttendanceData = [
-  {
-    id: 1,
-    user: {
-      name: "Sarah Johnson",
-      username: "sarahj",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    date: "Today, 9:30 AM",
-    gymName: "Fitness Center Downtown",
-    location: "New York, NY 10001",
-    coordinates: { lat: 40.7128, lng: -74.006 },
-    points: 2,
-    notes: "Great leg day! Increased my squat PR by 10 pounds.",
-    image: "/placeholder.svg?height=200&width=400",
-  },
-  {
-    id: 2,
-    user: {
-      name: "Mike Chen",
-      username: "mikechen",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    date: "Today, 8:15 AM",
-    gymName: "Gold's Gym",
-    location: "Los Angeles, CA 90001",
-    coordinates: { lat: 34.0522, lng: -118.2437 },
-    points: 2,
-    notes: "Morning workout focusing on chest and triceps.",
-    image: "/placeholder.svg?height=200&width=400",
-  },
-  {
-    id: 3,
-    user: {
-      name: "Emma Wilson",
-      username: "emmaw",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    date: "Yesterday, 6:30 PM",
-    gymName: "Fitness First",
-    location: "London, UK",
-    coordinates: { lat: 51.5074, lng: -0.1278 },
-    points: 1,
-    notes: "Evening cardio session after work.",
-    image: "/placeholder.svg?height=200&width=400",
-  },
-  {
-    id: 4,
-    user: {
-      name: "Alex Rodriguez",
-      username: "alexr",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    date: "Yesterday, 7:00 AM",
-    gymName: "Planet Fitness",
-    location: "Chicago, IL 60007",
-    coordinates: { lat: 41.8781, lng: -87.6298 },
-    points: 2,
-    notes: "Early morning workout focusing on back and biceps.",
-    image: "/placeholder.svg?height=200&width=400",
-  },
-  {
-    id: 5,
-    user: {
-      name: "Sophia Kim",
-      username: "sophiak",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    date: "2 days ago, 5:45 PM",
-    gymName: "24 Hour Fitness",
-    location: "San Francisco, CA 94016",
-    coordinates: { lat: 37.7749, lng: -122.4194 },
-    points: 2,
-    notes: "Great HIIT session today!",
-    image: "/placeholder.svg?height=200&width=400",
-  },
-]
+interface User {
+  _id: string
+  username: string
+  firstName?: string
+  lastName?: string
+  profileImage?: string
+}
+
+interface GlobalAttendance {
+  _id: string
+  user: User
+  date: string
+  gymName: string
+  location: string
+  coordinates: { lat: number; lng: number }
+  points: number
+  notes?: string
+  image?: string
+}
 
 export function GlobalTab() {
+  const [attendances, setAttendances] = useState<GlobalAttendance[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchGlobalAttendances() {
+      try {
+        const result = await getGlobalAttendance(1, 10)
+        setAttendances(result.attendances)
+      } catch (err) {
+        console.error("Error fetching global attendances:", err)
+        setError("Failed to load global activity")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchGlobalAttendances()
+  }, [])
+
   const getMapLink = (coordinates: { lat: number; lng: number }) => {
     return `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return formatDistanceToNow(date, { addSuffix: true })
+  }
+
+  const getUserDisplayName = (user: User) => {
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`
+    }
+    return user.username
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-destructive">{error}</p>
+        <p className="text-muted-foreground mt-2">Please try again later</p>
+      </div>
+    )
+  }
+
+  if (attendances.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium mb-2">No Global Activity</h3>
+        <p className="text-muted-foreground">
+          There are no gym visits recorded yet. Be the first to record your attendance!
+        </p>
+      </div>
+    )
   }
 
   return (
@@ -99,17 +105,20 @@ export function GlobalTab() {
       </p>
 
       <div className="space-y-4">
-        {globalAttendanceData.map((item) => (
-          <Card key={item.id}>
+        {attendances.map((item) => (
+          <Card key={item._id}>
             <CardHeader className="pb-2">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                 <div className="flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage src={item.user.avatar} alt={item.user.name} />
-                    <AvatarFallback>{item.user.name.charAt(0)}</AvatarFallback>
+                    <AvatarImage
+                      src={item.user.profileImage || "/placeholder.svg?height=40&width=40"}
+                      alt={getUserDisplayName(item.user)}
+                    />
+                    <AvatarFallback>{item.user.username.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <CardTitle className="text-base">{item.user.name}</CardTitle>
+                    <CardTitle className="text-base">{getUserDisplayName(item.user)}</CardTitle>
                     <CardDescription>@{item.user.username}</CardDescription>
                   </div>
                 </div>
@@ -123,7 +132,7 @@ export function GlobalTab() {
                 <div className="space-y-1 mb-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{item.date}</span>
+                    <span className="text-sm">{formatDate(item.date)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -145,12 +154,12 @@ export function GlobalTab() {
                     </span>
                   </div>
                 </div>
-                <p className="text-sm">{item.notes}</p>
+                <p className="text-sm">{item.notes || "No notes for this workout."}</p>
               </div>
               <div className="relative aspect-video overflow-hidden rounded-md">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={item.image || "/placeholder.svg"}
+                  src={item.image || "/placeholder.svg?height=200&width=400"}
                   alt={`Gym visit at ${item.gymName}`}
                   className="object-cover w-full h-full"
                 />

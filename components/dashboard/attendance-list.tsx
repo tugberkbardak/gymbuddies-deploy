@@ -1,58 +1,93 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Calendar, ExternalLink, Building2 } from "lucide-react"
+import { MapPin, Calendar, ExternalLink, Building2, Loader2 } from "lucide-react"
+import { getUserAttendance } from "@/actions/attendance-actions"
+import { formatDistanceToNow } from "date-fns"
 
-// Mock data - would come from database in real implementation
-const attendanceData = [
-  {
-    id: 1,
-    date: "Today, 9:30 AM",
-    gymName: "Fitness Center Downtown",
-    location: "123 Main St, New York, NY 10001",
-    coordinates: { lat: 40.7128, lng: -74.006 },
-    points: 2,
-    notes: "Great leg day! Increased my squat PR by 10 pounds.",
-    image: "/placeholder.svg?height=200&width=400",
-  },
-  {
-    id: 2,
-    date: "Yesterday, 6:15 PM",
-    gymName: "Gold's Gym",
-    location: "456 Park Ave, New York, NY 10022",
-    coordinates: { lat: 40.758, lng: -73.9855 },
-    points: 1,
-    notes: "Quick cardio session after work.",
-    image: "/placeholder.svg?height=200&width=400",
-  },
-  {
-    id: 3,
-    date: "March 13, 7:00 AM",
-    gymName: "Planet Fitness",
-    location: "789 Broadway, New York, NY 10003",
-    coordinates: { lat: 40.7308, lng: -73.9973 },
-    points: 2,
-    notes: "Morning workout focusing on upper body.",
-    image: "/placeholder.svg?height=200&width=400",
-  },
-]
+interface Attendance {
+  _id: string
+  date: string
+  gymName: string
+  location: string
+  coordinates: { lat: number; lng: number }
+  points: number
+  notes?: string
+  image?: string
+}
 
 export function AttendanceList() {
+  const [attendances, setAttendances] = useState<Attendance[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchAttendances() {
+      try {
+        const result = await getUserAttendance(1, 10)
+        setAttendances(result.attendances)
+      } catch (err) {
+        console.error("Error fetching attendances:", err)
+        setError("Failed to load attendance records")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAttendances()
+  }, [])
+
   const getMapLink = (coordinates: { lat: number; lng: number }) => {
     return `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return formatDistanceToNow(date, { addSuffix: true })
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-destructive">{error}</p>
+        <p className="text-muted-foreground mt-2">Please try again later</p>
+      </div>
+    )
+  }
+
+  if (attendances.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium mb-2">No Attendance Records</h3>
+        <p className="text-muted-foreground">
+          You haven't recorded any gym visits yet. Click "Record Attendance" to get started!
+        </p>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-medium">Recent Attendance</h3>
 
-      {attendanceData.map((item) => (
-        <Card key={item.id}>
+      {attendances.map((item) => (
+        <Card key={item._id}>
           <CardHeader className="pb-2">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <CardDescription>{item.date}</CardDescription>
+                  <CardDescription>{formatDate(item.date)}</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -83,13 +118,13 @@ export function AttendanceList() {
             <div className="relative aspect-video overflow-hidden rounded-md">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={item.image || "/placeholder.svg"}
+                src={item.image || "/placeholder.svg?height=200&width=400"}
                 alt={`Gym visit at ${item.gymName}`}
                 className="object-cover w-full h-full"
               />
             </div>
             <div>
-              <p className="text-sm">{item.notes}</p>
+              <p className="text-sm">{item.notes || "No notes for this workout."}</p>
             </div>
           </CardContent>
         </Card>

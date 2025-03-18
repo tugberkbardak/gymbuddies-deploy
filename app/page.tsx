@@ -1,9 +1,21 @@
-import Link from "next/link"
+"use client"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { SignInButton, SignUpButton, SignedIn, SignedOut } from "@clerk/nextjs"
+import { SignInButton, SignUpButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Loader2 } from "lucide-react"
 
 export default function LandingPage() {
+  const { isSignedIn } = useUser()
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+
+  const handleDashboardClick = () => {
+    setIsLoading(true)
+    router.push("/dashboard")
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="w-full py-4 px-6 flex justify-between items-center border-b">
@@ -23,11 +35,11 @@ export default function LandingPage() {
         </SignedOut>
       </header>
 
-      <main className="flex-1 flex flex-col md:flex-row items-center justify-center p-6 gap-8">
+      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-8">
         <div className="flex-1 max-w-xl space-y-6">
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Track Your Gym Progress With Friends</h2>
           <p className="text-xl text-muted-foreground">
-            Record your gym attendance, share your progress with friends, and compete in groups to stay motivated!
+            Record your gym attendance, share your progress with friends, and compete in groups to stay motivated.
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
             <SignedOut>
@@ -43,15 +55,23 @@ export default function LandingPage() {
               </SignInButton>
             </SignedOut>
             <SignedIn>
-              <Link href="/dashboard">
-                <Button size="lg">Go to your Dashboard</Button>
-              </Link>
+              <Button size="lg" onClick={handleDashboardClick} disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  "Go to Dashboard"
+                )}
+              </Button>
             </SignedIn>
           </div>
         </div>
 
-        <div className="flex-1 max-w-md">
-          <div className="relative aspect-square">
+        {/* Modified image container to display properly on all devices */}
+        <div className="w-full max-w-md mx-auto mt-8">
+          <div className="relative aspect-square w-full">
             <Image
               src="gymimage.png"
               alt="People working out at the gym"

@@ -7,13 +7,15 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { currentUser } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 
-export default async function DashboardPage() {
-  // Use currentUser from @clerk/nextjs/server
+export default async function DashboardPage({ searchParams }) {
   const user = await currentUser()
 
   if (!user) {
     redirect("/")
   }
+
+  // Get the active tab from URL parameters or default to "attendance"
+  const activeTab = searchParams.tab || "attendance"
 
   // Mock data - in a real app, this would come from your database
   const isPremiumUser = false // Set to true to test premium access
@@ -23,7 +25,7 @@ export default async function DashboardPage() {
       <DashboardHeader />
 
       <main className="flex-1 container py-6">
-        <Tabs defaultValue="attendance" className="w-full">
+        <Tabs defaultValue={activeTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-8">
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
             <TabsTrigger value="friends">Friends</TabsTrigger>

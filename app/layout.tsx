@@ -4,14 +4,15 @@ import { ClerkProvider } from "@clerk/nextjs"
 import { Inter } from "next/font/google"
 import "@/app/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "GymBuddies - Track Your Gym Progress With Friends",
   description: "Record your gym attendance, share your progress with friends, and compete in groups to stay motivated.",
-    generator: 'v0.dev'
+  icons: {
+    icon: [{ url: "/favicon.ico" }, { url: "/icon.svg", type: "image/svg+xml" }],
+  },
 }
 
 export default function RootLayout({
@@ -22,17 +23,16 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
+        <head>
+          <link rel="icon" href="/favicon.ico" sizes="any" />
+        </head>
         <body className={inter.className}>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem enableColorScheme={false}>
             {children}
           </ThemeProvider>
-          <Analytics />
         </body>
       </html>
     </ClerkProvider>
   )
 }
 
-
-
-import './globals.css'

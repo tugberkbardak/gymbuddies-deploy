@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useUser } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
@@ -20,7 +19,6 @@ export default function EditProfilePage() {
 
   const [isUpdating, setIsUpdating] = useState(false)
   const [formData, setFormData] = useState({
-    username: "",
     firstName: "",
     lastName: "",
     bio: "",
@@ -30,7 +28,6 @@ export default function EditProfilePage() {
   useEffect(() => {
     if (isLoaded && user) {
       setFormData({
-        username: user.username || "",
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         bio: (user.unsafeMetadata as any)?.bio || "",
@@ -52,7 +49,6 @@ export default function EditProfilePage() {
 
     try {
       await user.update({
-        username: formData.username,
         firstName: formData.firstName,
         lastName: formData.lastName,
         unsafeMetadata: {
@@ -108,11 +104,6 @@ export default function EditProfilePage() {
                   <Label htmlFor="lastName">Last Name</Label>
                   <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input id="username" name="username" value={formData.username} onChange={handleChange} />
               </div>
 
               <div className="space-y-2">

@@ -7,39 +7,22 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { ChevronLeft, Calendar, Trophy, MapPin } from "lucide-react"
 import { redirect } from "next/navigation"
+import { getUserProfile } from "@/actions/user-actions"
+import { getUserAttendance } from "@/actions/attendance-actions"
+import { formatDistanceToNow, format } from "date-fns"
 
 export default async function ProfilePage() {
-  const user = await currentUser()
+  const clerkUser = await currentUser()
 
-  if (!user) {
+  if (!clerkUser) {
     redirect("/")
   }
 
-  // Mock data - would come from database in real implementation
-  const userStats = {
-    totalAttendance: 24,
-    currentStreak: 5,
-    totalPoints: 42,
-    rank: 3,
-    joinedDate: "January 15, 2023",
-  }
+  // Get user profile from MongoDB
+  const user = await getUserProfile()
 
-  const recentAttendance = [
-    {
-      id: 1,
-      date: "Today, 9:30 AM",
-      location: "Fitness Center Downtown",
-      coordinates: { lat: 40.7128, lng: -74.006 },
-      points: 2,
-    },
-    {
-      id: 2,
-      date: "Yesterday, 6:15 PM",
-      location: "Gold's Gym",
-      coordinates: { lat: 40.758, lng: -73.9855 },
-      points: 1,
-    },
-  ]
+  // Get recent attendance
+  const { attendances } = await getUserAttendance(1, 2)
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -61,41 +44,48 @@ export default async function ProfilePage() {
               <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage src={user.imageUrl} alt={user.username || ""} />
+                    <AvatarImage src={clerkUser.imageUrl} alt={clerkUser.username || ""} />
                     <AvatarFallback>
-                      {user.firstName?.charAt(0)}
-                      {user.lastName?.charAt(0)}
+                      {clerkUser.firstName?.charAt(0)}
+                      {clerkUser.lastName?.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <CardTitle className="text-2xl">
-                      {user.firstName} {user.lastName}
+                      {clerkUser.firstName} {clerkUser.lastName}
                     </CardTitle>
                     <CardDescription>
-                      @{user.username || user.emailAddresses[0].emailAddress.split("@")[0]}
+                      @{clerkUser.username || clerkUser.emailAddresses[0].emailAddress.split("@")[0]}
                     </CardDescription>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="outline" className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    Joined {userStats.joinedDate}
+                    Joined {format(new Date(user.joinedDate), "MMMM d, yyyy")}
                   </Badge>
                   <Badge variant="secondary" className="flex items-center gap-1">
                     <Trophy className="h-3 w-3" />
-                    {userStats.currentStreak} day streak
+                    {user.currentStreak} day streak
                   </Badge>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
+              {user.bio && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium mb-2">Bio</h3>
+                  <p className="text-muted-foreground">{user.bio}</p>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
                 <Card>
                   <CardHeader className="py-4">
                     <CardTitle className="text-sm font-medium">Total Attendance</CardTitle>
                   </CardHeader>
                   <CardContent className="py-2">
-                    <div className="text-2xl font-bold">{userStats.totalAttendance}</div>
+                    <div className="text-2xl font-bold">{user.totalAttendance}</div>
                     <p className="text-xs text-muted-foreground">Gym visits</p>
                   </CardContent>
                 </Card>
@@ -105,7 +95,7 @@ export default async function ProfilePage() {
                     <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
                   </CardHeader>
                   <CardContent className="py-2">
-                    <div className="text-2xl font-bold">{userStats.currentStreak}</div>
+                    <div className="text-2xl font-bold">{user.currentStreak}</div>
                     <p className="text-xs text-muted-foreground">Days in a row</p>
                   </CardContent>
                 </Card>
@@ -115,18 +105,20 @@ export default async function ProfilePage() {
                     <CardTitle className="text-sm font-medium">Total Points</CardTitle>
                   </CardHeader>
                   <CardContent className="py-2">
-                    <div className="text-2xl font-bold">{userStats.totalPoints}</div>
+                    <div className="text-2xl font-bold">{user.totalPoints}</div>
                     <p className="text-xs text-muted-foreground">Points earned</p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Rank</CardTitle>
+                    <CardTitle className="text-sm font-medium">Last Active</CardTitle>
                   </CardHeader>
                   <CardContent className="py-2">
-                    <div className="text-2xl font-bold">#{userStats.rank}</div>
-                    <p className="text-xs text-muted-foreground">Among friends</p>
+                    <div className="text-2xl font-bold">
+                      {formatDistanceToNow(new Date(user.lastActive), { addSuffix: true })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Last gym visit</p>
                   </CardContent>
                 </Card>
               </div>
@@ -144,29 +136,37 @@ export default async function ProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentAttendance.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center p-4 border rounded-lg">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{item.date}</span>
+                {attendances.length > 0 ? (
+                  attendances.map((item) => (
+                    <div key={item._id} className="flex justify-between items-center p-4 border rounded-lg">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {formatDistanceToNow(new Date(item.date), { addSuffix: true })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{item.gymName}</span>
+                          <a
+                            href={`https://www.google.com/maps?q=${item.coordinates.lat},${item.coordinates.lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary underline"
+                          >
+                            View on map
+                          </a>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{item.location}</span>
-                        <a
-                          href={`https://www.google.com/maps?q=${item.coordinates.lat},${item.coordinates.lng}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary underline"
-                        >
-                          View on map
-                        </a>
-                      </div>
+                      <Badge>{item.points} Points</Badge>
                     </div>
-                    <Badge>{item.points} Points</Badge>
+                  ))
+                ) : (
+                  <div className="text-center py-6">
+                    <p className="text-muted-foreground">No recent attendance records</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>

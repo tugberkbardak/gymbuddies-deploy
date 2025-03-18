@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,15 +9,20 @@ import { Textarea } from "@/components/ui/textarea"
 import { Camera, MapPin, Upload, Loader2, Building2 } from "lucide-react"
 import { AttendanceList } from "@/components/dashboard/attendance-list"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { recordAttendance } from "@/actions/attendance-actions"
+import { useToast } from "@/hooks/use-toast"
 
 export function AttendanceTab() {
+  const { toast } = useToast()
   const [showForm, setShowForm] = useState(false)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationName, setLocationName] = useState("")
   const [gymName, setGymName] = useState("")
+  const [notes, setNotes] = useState("")
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -77,14 +81,62 @@ export function AttendanceTab() {
     }
   }, [showForm])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // This would be handled with a server action in the real implementation
-    setShowForm(false)
-    setSelectedImage(null)
-    setLocation(null)
-    setLocationName("")
-    setGymName("")
+
+    if (!location || !selectedImage || !gymName.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      // Create a FormData object to send to the server action
+      const formData = new FormData()
+      formData.append("gymName", gymName)
+      formData.append("location", locationName)
+      formData.append("lat", location.lat.toString())
+      formData.append("lng", location.lng.toString())
+      formData.append("notes", notes)
+      formData.append("image", selectedImage)
+
+      const result = await recordAttendance(formData)
+
+      if (result.success) {
+        toast({
+          title: "Success!",
+          description: "Your gym attendance has been recorded",
+        })
+
+        // Reset form
+        setShowForm(false)
+        setSelectedImage(null)
+        setLocation(null)
+        setLocationName("")
+        setGymName("")
+        setNotes("")
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to record attendance",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error)
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const getMapLink = () => {
@@ -98,7 +150,6 @@ export function AttendanceTab() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <h2 className="text-2xl font-bold tracking-tight">Gym Attendance</h2>
-        
         <Button
           onClick={() => setShowForm(true)}
           size="sm"
@@ -245,7 +296,13 @@ export function AttendanceTab() {
                 <label htmlFor="notes" className="text-sm font-medium">
                   Workout Notes (Optional)
                 </label>
-                <Textarea id="notes" placeholder="Share how your workout went today..." rows={3} />
+                <Textarea
+                  id="notes"
+                  placeholder="Share how your workout went today..."
+                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
@@ -258,12 +315,21 @@ export function AttendanceTab() {
                   setLocation(null)
                   setLocationName("")
                   setGymName("")
+                  setNotes("")
                 }}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={!location || !selectedImage || !gymName.trim()}>
-                Submit
+              <Button type="submit" disabled={isSubmitting || !location || !selectedImage || !gymName.trim()}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit"
+                )}
               </Button>
             </CardFooter>
           </form>

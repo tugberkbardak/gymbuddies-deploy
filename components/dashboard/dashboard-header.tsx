@@ -1,12 +1,13 @@
 "use client"
 
+import { useUser } from "@clerk/nextjs"
 import Link from "next/link"
 import Image from "next/image"
-import { UserButton, useUser } from "@clerk/nextjs"
+import { UserButton } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 
 export function DashboardHeader() {
-  const { user } = useUser()
+  const { user, isLoaded } = useUser()
 
   return (
     <header className="w-full py-4 px-6 flex justify-between items-center border-b bg-background sticky top-0 z-10">
@@ -18,9 +19,10 @@ export function DashboardHeader() {
       </div>
 
       <div className="flex items-center gap-4">
-        {user && (
+        {isLoaded && user && (
           <span className="text-sm hidden md:inline-block">Welcome, {user.firstName || user.username || "User"}</span>
         )}
+
         <Button variant="ghost" size="sm" asChild>
           <Link href="/profile">Profile</Link>
         </Button>
