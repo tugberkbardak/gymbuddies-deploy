@@ -19,12 +19,12 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="w-full py-4 px-6 flex justify-between items-center border-b">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Image src="/logo.svg" alt="GymBuddies Logo" width={40} height={40} />
           <h1 className="text-2xl font-bold">GymBuddies</h1>
         </div>
         <SignedOut>
-          <div className="flex gap-2">
+          <div className="flex gap-2 ml-4">
             <SignInButton mode="modal">
               <Button variant="outline">Sign In</Button>
             </SignInButton>
@@ -73,7 +73,7 @@ export default function LandingPage() {
         <div className="w-full max-w-md mx-auto mt-8">
           <div className="relative aspect-square w-full">
             <Image
-              src="gymimage.png"
+              src="/placeholder.svg?height=500&width=500"
               alt="People working out at the gym"
               fill
               className="object-cover rounded-lg shadow-lg"
