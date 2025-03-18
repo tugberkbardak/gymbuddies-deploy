@@ -6,6 +6,7 @@ import { GlobalTab } from "@/components/dashboard/global-tab"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { currentUser } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
+import DashboardAutoRefresh from "@/components/dashboard/dashboard-auto-refresh"
 
 export default async function DashboardPage({ searchParams }) {
   const user = await currentUser()
@@ -21,36 +22,39 @@ export default async function DashboardPage({ searchParams }) {
   const isPremiumUser = false // Set to true to test premium access
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <DashboardHeader />
+    <>
+      <DashboardAutoRefresh />
+      <div className="min-h-screen flex flex-col">
+        <DashboardHeader />
 
-      <main className="flex-1 container py-6">
-        <Tabs defaultValue={activeTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
-            <TabsTrigger value="attendance">Attendance</TabsTrigger>
-            <TabsTrigger value="friends">Friends</TabsTrigger>
-            <TabsTrigger value="global">Global</TabsTrigger>
-            <TabsTrigger value="groups">Groups</TabsTrigger>
-          </TabsList>
+        <main className="flex-1 container py-6">
+          <Tabs defaultValue={activeTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-4 mb-8">
+              <TabsTrigger value="attendance">Attendance</TabsTrigger>
+              <TabsTrigger value="friends">Friends</TabsTrigger>
+              <TabsTrigger value="global">Global</TabsTrigger>
+              <TabsTrigger value="groups">Groups</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="attendance" className="space-y-4">
-            <AttendanceTab />
-          </TabsContent>
+            <TabsContent value="attendance" className="space-y-4">
+              <AttendanceTab />
+            </TabsContent>
 
-          <TabsContent value="friends" className="space-y-4">
-            <FriendsTab />
-          </TabsContent>
+            <TabsContent value="friends" className="space-y-4">
+              <FriendsTab />
+            </TabsContent>
 
-          <TabsContent value="global" className="space-y-4">
-            <GlobalTab />
-          </TabsContent>
+            <TabsContent value="global" className="space-y-4">
+              <GlobalTab />
+            </TabsContent>
 
-          <TabsContent value="groups" className="space-y-4">
-            <GroupsTab isPremium={true} userHasPremium={isPremiumUser} />
-          </TabsContent>
-        </Tabs>
-      </main>
-    </div>
+            <TabsContent value="groups" className="space-y-4">
+              <GroupsTab isPremium={true} userHasPremium={isPremiumUser} />
+            </TabsContent>
+          </Tabs>
+        </main>
+      </div>
+    </>
   )
 }
 

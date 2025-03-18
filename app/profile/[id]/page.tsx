@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ChevronLeft, Calendar, Trophy, MapPin } from "lucide-react"
+import { ChevronLeft, Calendar, Trophy } from "lucide-react"
 import { redirect } from "next/navigation"
 import dbConnect from "@/lib/mongodb"
 import User from "@/models/User"
-import Attendance from "@/models/Attendance"
-import { serializeMongooseObject } from "@/lib/utils-server"
+import Friendship from "@/models/Friendship"
 import mongoose from "mongoose"
+import AttendanceHeatmap from "@/components/profile/attendance-heatmap"
+import { getUserAttendanceHeatmap } from "@/actions/attendance-actions"
 
 export default async function UserProfilePage({ params }: { params: { id: string } }) {
   const viewer = await currentUser()
@@ -40,19 +41,46 @@ export default async function UserProfilePage({ params }: { params: { id: string
     return redirect("/dashboard?error=user-not-found")
   }
 
-  // Get recent attendance for this user
-  const recentAttendance = await Attendance.find({ user: user._id }).sort({ date: -1 }).limit(3)
+  // Fetch attendance heatmap data
+  const attendanceHeatmapData = await getUserAttendanceHeatmap(params.id)
 
-  const serializedAttendance = serializeMongooseObject(recentAttendance)
+  // Calculate real rank among friends
+  // 1. Get all friends
+  const friendships = await Friendship.find({
+    $or: [
+      { user: user._id, status: "accepted" },
+      { friend: user._id, status: "accepted" },
+    ],
+  })
+
+  // 2. Extract friend IDs
+  const friendIds = friendships.map((friendship) => {
+    if (friendship.user.toString() === user._id.toString()) {
+      return friendship.friend
+    } else {
+      return friendship.user
+    }
+  })
+
+  // 3. Add the user's own ID to include them in the ranking
+  friendIds.push(user._id)
+
+  // 4. Get all users with their points
+  const usersWithPoints = await User.find({
+    _id: { $in: friendIds },
+  }).sort({ totalPoints: -1 })
+
+  // 5. Find user's position in the sorted list
+  const userRank = usersWithPoints.findIndex((u) => u._id.toString() === user._id.toString()) + 1
 
   // User stats
   const userStats = {
     totalAttendance: user.totalAttendance || 0,
     currentStreak: user.currentStreak || 0,
     totalPoints: user.totalPoints || 0,
+    rank: userRank,
     joinedDate: user.joinedDate
       ? new Date(user.joinedDate).toLocaleDateString("en-US", {
-          year: "numeric",
           month: "long",
           day: "numeric",
         })
@@ -148,40 +176,16 @@ export default async function UserProfilePage({ params }: { params: { id: string
             </CardContent>
           </Card>
 
-          {serializedAttendance.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Attendance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {serializedAttendance.map((item) => (
-                    <div key={item._id} className="flex justify-between items-center p-4 border rounded-lg">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{new Date(item.date).toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{item.gymName}</span>
-                          <a
-                            href={`https://www.google.com/maps?q=${item.coordinates.lat},${item.coordinates.lng}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary underline"
-                          >
-                            View on map
-                          </a>
-                        </div>
-                      </div>
-                      <Badge>{item.points} Points</Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Attendance Heatmap Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Gym Attendance</CardTitle>
+              <CardDescription>Gym attendance throughout the year</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AttendanceHeatmap attendanceData={attendanceHeatmapData} />
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>

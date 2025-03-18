@@ -1,48 +1,29 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Calendar, ExternalLink, Building2, Loader2 } from "lucide-react"
 import { getGlobalAttendance } from "@/actions/attendance-actions"
-import { formatDistanceToNow } from "date-fns"
-
-interface User {
-  _id: string
-  username: string
-  firstName?: string
-  lastName?: string
-  profileImage?: string
-}
-
-interface GlobalAttendance {
-  _id: string
-  user: User
-  date: string
-  gymName: string
-  location: string
-  coordinates: { lat: number; lng: number }
-  points: number
-  notes?: string
-  image?: string
-}
 
 export function GlobalTab() {
-  const [attendances, setAttendances] = useState<GlobalAttendance[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [globalAttendanceData, setGlobalAttendanceData] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    async function fetchGlobalAttendances() {
+    const fetchGlobalAttendances = async () => {
+      setIsLoading(true)
+      setError(null)
       try {
-        const result = await getGlobalAttendance(1, 10)
-        setAttendances(result.attendances)
+        const result = await getGlobalAttendance(10, 1)
+        setGlobalAttendanceData(result.attendances || [])
       } catch (err) {
-        console.error("Error fetching global attendances:", err)
-        setError("Failed to load global activity")
+        console.error("Error fetching global attendance:", err)
+        setError("Failed to load global attendance data")
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
@@ -53,19 +34,7 @@ export function GlobalTab() {
     return `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return formatDistanceToNow(date, { addSuffix: true })
-  }
-
-  const getUserDisplayName = (user: User) => {
-    if (user.firstName && user.lastName) {
-      return `${user.firstName} ${user.lastName}`
-    }
-    return user.username
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -75,20 +44,16 @@ export function GlobalTab() {
 
   if (error) {
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-8">
         <p className="text-destructive">{error}</p>
-        <p className="text-muted-foreground mt-2">Please try again later</p>
       </div>
     )
   }
 
-  if (attendances.length === 0) {
+  if (globalAttendanceData.length === 0) {
     return (
-      <div className="text-center py-12">
-        <h3 className="text-lg font-medium mb-2">No Global Activity</h3>
-        <p className="text-muted-foreground">
-          There are no gym visits recorded yet. Be the first to record your attendance!
-        </p>
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No global attendance records found yet.</p>
       </div>
     )
   }
@@ -105,21 +70,21 @@ export function GlobalTab() {
       </p>
 
       <div className="space-y-4">
-        {attendances.map((item) => (
-          <Card key={item._id}>
+        {globalAttendanceData.map((item) => (
+          <Card key={item.id || item._id}>
             <CardHeader className="pb-2">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                 <div className="flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage
-                      src={item.user.profileImage || "/placeholder.svg?height=40&width=40"}
-                      alt={getUserDisplayName(item.user)}
-                    />
-                    <AvatarFallback>{item.user.username.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={item.user?.profileImage} alt={item.user?.username} />
+                    <AvatarFallback>{item.user?.username?.charAt(0) || "U"}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <CardTitle className="text-base">{getUserDisplayName(item.user)}</CardTitle>
-                    <CardDescription>@{item.user.username}</CardDescription>
+                    <CardTitle className="text-base">
+                      {item.user?.firstName || ""} {item.user?.lastName || ""}
+                      {!item.user?.firstName && !item.user?.lastName && "User"}
+                    </CardTitle>
+                    <CardDescription>@{item.user?.username || "user"}</CardDescription>
                   </div>
                 </div>
                 <Badge variant="secondary" className="self-start">
@@ -132,7 +97,7 @@ export function GlobalTab() {
                 <div className="space-y-1 mb-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{formatDate(item.date)}</span>
+                    <span className="text-sm">{new Date(item.date).toLocaleString()}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -154,7 +119,7 @@ export function GlobalTab() {
                     </span>
                   </div>
                 </div>
-                <p className="text-sm">{item.notes || "No notes for this workout."}</p>
+                <p className="text-sm">{item.notes}</p>
               </div>
               <div className="relative aspect-video overflow-hidden rounded-md">
                 {/* eslint-disable-next-line @next/next/no-img-element */}

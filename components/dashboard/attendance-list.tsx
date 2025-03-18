@@ -1,38 +1,28 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Calendar, ExternalLink, Building2, Loader2 } from "lucide-react"
 import { getUserAttendance } from "@/actions/attendance-actions"
-import { formatDistanceToNow } from "date-fns"
-
-interface Attendance {
-  _id: string
-  date: string
-  gymName: string
-  location: string
-  coordinates: { lat: number; lng: number }
-  points: number
-  notes?: string
-  image?: string
-}
 
 export function AttendanceList() {
-  const [attendances, setAttendances] = useState<Attendance[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [attendanceData, setAttendanceData] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    async function fetchAttendances() {
+    const fetchAttendances = async () => {
+      setIsLoading(true)
+      setError(null)
       try {
-        const result = await getUserAttendance(1, 10)
-        setAttendances(result.attendances)
+        const result = await getUserAttendance(10, 1)
+        setAttendanceData(result.attendances || [])
       } catch (err) {
-        console.error("Error fetching attendances:", err)
-        setError("Failed to load attendance records")
+        console.error("Error fetching attendance:", err)
+        setError("Failed to load attendance data")
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
@@ -43,12 +33,7 @@ export function AttendanceList() {
     return `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return formatDistanceToNow(date, { addSuffix: true })
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -58,20 +43,16 @@ export function AttendanceList() {
 
   if (error) {
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-8">
         <p className="text-destructive">{error}</p>
-        <p className="text-muted-foreground mt-2">Please try again later</p>
       </div>
     )
   }
 
-  if (attendances.length === 0) {
+  if (attendanceData.length === 0) {
     return (
-      <div className="text-center py-12">
-        <h3 className="text-lg font-medium mb-2">No Attendance Records</h3>
-        <p className="text-muted-foreground">
-          You haven't recorded any gym visits yet. Click "Record Attendance" to get started!
-        </p>
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No attendance records found. Record your first gym visit!</p>
       </div>
     )
   }
@@ -80,14 +61,14 @@ export function AttendanceList() {
     <div className="space-y-4">
       <h3 className="text-lg font-medium">Recent Attendance</h3>
 
-      {attendances.map((item) => (
-        <Card key={item._id}>
+      {attendanceData.map((item) => (
+        <Card key={item.id || item._id}>
           <CardHeader className="pb-2">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <CardDescription>{formatDate(item.date)}</CardDescription>
+                  <CardDescription>{new Date(item.date).toLocaleString()}</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -124,7 +105,7 @@ export function AttendanceList() {
               />
             </div>
             <div>
-              <p className="text-sm">{item.notes || "No notes for this workout."}</p>
+              <p className="text-sm">{item.notes}</p>
             </div>
           </CardContent>
         </Card>

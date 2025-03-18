@@ -5,24 +5,87 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ChevronLeft, Calendar, Trophy, MapPin } from "lucide-react"
+import { ChevronLeft, Calendar, Trophy } from "lucide-react"
 import { redirect } from "next/navigation"
-import { getUserProfile } from "@/actions/user-actions"
-import { getUserAttendance } from "@/actions/attendance-actions"
-import { formatDistanceToNow, format } from "date-fns"
+import AttendanceHeatmap from "@/components/profile/attendance-heatmap"
+import { getUserAttendanceHeatmap } from "@/actions/attendance-actions"
+import dbConnect from "@/lib/mongodb"
+import User from "@/models/User"
+import Friendship from "@/models/Friendship"
 
 export default async function ProfilePage() {
-  const clerkUser = await currentUser()
+  const user = await currentUser()
 
-  if (!clerkUser) {
+  if (!user) {
     redirect("/")
   }
 
-  // Get user profile from MongoDB
-  const user = await getUserProfile()
+  // Fetch attendance heatmap data
+  const attendanceHeatmapData = await getUserAttendanceHeatmap()
 
-  // Get recent attendance
-  const { attendances } = await getUserAttendance(1, 2)
+  // Get user stats from the database
+  await dbConnect()
+  const dbUser = await User.findOne({ clerkId: user.id })
+
+  if (!dbUser) {
+    // Handle case where user is not found in MongoDB
+    return (
+      <div className="min-h-screen flex flex-col">
+        <DashboardHeader />
+        <main className="flex-1 container py-6">
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold mb-4">User profile not found</h2>
+            <p className="text-muted-foreground mb-6">Your user profile hasn't been set up in our database yet.</p>
+            <Button asChild>
+              <Link href="/dashboard">Go to Dashboard</Link>
+            </Button>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  // Calculate real rank among friends
+  // 1. Get all friends
+  const friendships = await Friendship.find({
+    $or: [
+      { user: dbUser._id, status: "accepted" },
+      { friend: dbUser._id, status: "accepted" },
+    ],
+  })
+
+  // 2. Extract friend IDs
+  const friendIds = friendships.map((friendship) => {
+    if (friendship.user.toString() === dbUser._id.toString()) {
+      return friendship.friend
+    } else {
+      return friendship.user
+    }
+  })
+
+  // 3. Add the user's own ID to include them in the ranking
+  friendIds.push(dbUser._id)
+
+  // 4. Get all users with their points
+  const usersWithPoints = await User.find({
+    _id: { $in: friendIds },
+  }).sort({ totalPoints: -1 })
+
+  // 5. Find user's position in the sorted list
+  const userRank = usersWithPoints.findIndex((u) => u._id.toString() === dbUser._id.toString()) + 1
+
+  const userStats = {
+    totalAttendance: dbUser.totalAttendance || 0,
+    currentStreak: dbUser.currentStreak || 0,
+    totalPoints: dbUser.totalPoints || 0,
+    rank: userRank,
+    joinedDate: dbUser.joinedDate
+      ? new Date(dbUser.joinedDate).toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+        })
+      : "Unknown",
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -44,48 +107,41 @@ export default async function ProfilePage() {
               <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage src={clerkUser.imageUrl} alt={clerkUser.username || ""} />
+                    <AvatarImage src={user.imageUrl} alt={user.username || ""} />
                     <AvatarFallback>
-                      {clerkUser.firstName?.charAt(0)}
-                      {clerkUser.lastName?.charAt(0)}
+                      {user.firstName?.charAt(0)}
+                      {user.lastName?.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <CardTitle className="text-2xl">
-                      {clerkUser.firstName} {clerkUser.lastName}
+                      {user.firstName} {user.lastName}
                     </CardTitle>
                     <CardDescription>
-                      @{clerkUser.username || clerkUser.emailAddresses[0].emailAddress.split("@")[0]}
+                      @{user.username || user.emailAddresses[0].emailAddress.split("@")[0]}
                     </CardDescription>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="outline" className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    Joined {format(new Date(user.joinedDate), "MMMM d, yyyy")}
+                    Joined {userStats.joinedDate}
                   </Badge>
                   <Badge variant="secondary" className="flex items-center gap-1">
                     <Trophy className="h-3 w-3" />
-                    {user.currentStreak} day streak
+                    {userStats.currentStreak} day streak
                   </Badge>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              {user.bio && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium mb-2">Bio</h3>
-                  <p className="text-muted-foreground">{user.bio}</p>
-                </div>
-              )}
-
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
                 <Card>
                   <CardHeader className="py-4">
                     <CardTitle className="text-sm font-medium">Total Attendance</CardTitle>
                   </CardHeader>
                   <CardContent className="py-2">
-                    <div className="text-2xl font-bold">{user.totalAttendance}</div>
+                    <div className="text-2xl font-bold">{userStats.totalAttendance}</div>
                     <p className="text-xs text-muted-foreground">Gym visits</p>
                   </CardContent>
                 </Card>
@@ -95,7 +151,7 @@ export default async function ProfilePage() {
                     <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
                   </CardHeader>
                   <CardContent className="py-2">
-                    <div className="text-2xl font-bold">{user.currentStreak}</div>
+                    <div className="text-2xl font-bold">{userStats.currentStreak}</div>
                     <p className="text-xs text-muted-foreground">Days in a row</p>
                   </CardContent>
                 </Card>
@@ -105,20 +161,26 @@ export default async function ProfilePage() {
                     <CardTitle className="text-sm font-medium">Total Points</CardTitle>
                   </CardHeader>
                   <CardContent className="py-2">
-                    <div className="text-2xl font-bold">{user.totalPoints}</div>
+                    <div className="text-2xl font-bold">{userStats.totalPoints}</div>
                     <p className="text-xs text-muted-foreground">Points earned</p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Last Active</CardTitle>
+                    <CardTitle className="text-sm font-medium">Rank</CardTitle>
                   </CardHeader>
                   <CardContent className="py-2">
                     <div className="text-2xl font-bold">
-                      {formatDistanceToNow(new Date(user.lastActive), { addSuffix: true })}
+                      {userRank === 1 ? (
+                        <span className="text-amber-500">#{userStats.rank}</span>
+                      ) : (
+                        <span>#{userStats.rank}</span>
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground">Last gym visit</p>
+                    <p className="text-xs text-muted-foreground">
+                      Among {friendIds.length} {friendIds.length === 1 ? "person" : "people"}
+                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -130,44 +192,14 @@ export default async function ProfilePage() {
             </CardFooter>
           </Card>
 
+          {/* Attendance Heatmap Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Recent Attendance</CardTitle>
+              <CardTitle>Gym Attendance</CardTitle>
+              <CardDescription>Your gym attendance throughout the year</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {attendances.length > 0 ? (
-                  attendances.map((item) => (
-                    <div key={item._id} className="flex justify-between items-center p-4 border rounded-lg">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">
-                            {formatDistanceToNow(new Date(item.date), { addSuffix: true })}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{item.gymName}</span>
-                          <a
-                            href={`https://www.google.com/maps?q=${item.coordinates.lat},${item.coordinates.lng}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary underline"
-                          >
-                            View on map
-                          </a>
-                        </div>
-                      </div>
-                      <Badge>{item.points} Points</Badge>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-6">
-                    <p className="text-muted-foreground">No recent attendance records</p>
-                  </div>
-                )}
-              </div>
+              <AttendanceHeatmap attendanceData={attendanceHeatmapData} />
             </CardContent>
           </Card>
         </div>
