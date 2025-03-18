@@ -154,10 +154,10 @@ export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHea
           </div>
 
           <div className="flex justify-end items-center mt-2">
-            <div className="text-xs text-muted-foreground mr-2">Less</div>
+            <div className="text-xs text-muted-foreground mr-2">Not</div>
             <div className="bg-gray-800 w-3 h-3 rounded-sm"></div>
             <div className="bg-[#83FFE6] w-3 h-3 rounded-sm ml-1"></div>
-            <div className="text-xs text-muted-foreground ml-2">More</div>
+            <div className="text-xs text-muted-foreground ml-2">Attended</div>
           </div>
         </div>
       </div>

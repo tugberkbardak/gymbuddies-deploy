@@ -1,19 +1,21 @@
 "use client"
 
 import type React from "react"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Camera, MapPin, Upload, Loader2, Building2 } from "lucide-react"
+import { Camera, MapPin, Upload, Loader2, Building2, CheckCircle2, AlertCircle } from "lucide-react"
 import { AttendanceList } from "@/components/dashboard/attendance-list"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { recordAttendance } from "@/actions/attendance-actions"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
+import { useRouter } from "next/navigation"
 
 export function AttendanceTab() {
   const { toast } = useToast()
+  const router = useRouter()
   const [showForm, setShowForm] = useState(false)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
@@ -23,6 +25,8 @@ export function AttendanceTab() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [formSuccess, setFormSuccess] = useState<string | null>(null)
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -83,55 +87,74 @@ export function AttendanceTab() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!location || !selectedImage || !gymName.trim()) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      })
-      return
-    }
-
+    setFormError(null)
+    setFormSuccess(null)
     setIsSubmitting(true)
 
     try {
-      // Create a FormData object to send to the server action
+      // Validate form
+      if (!gymName.trim()) {
+        throw new Error("Gym name is required")
+      }
+
+      if (!locationName.trim()) {
+        throw new Error("Location is required")
+      }
+
+      if (!location) {
+        throw new Error("Please share your location")
+      }
+
+      if (!selectedImage) {
+        throw new Error("Please upload a gym photo")
+      }
+
+      // Submit form using fetch API instead of direct server action
       const formData = new FormData()
       formData.append("gymName", gymName)
-      formData.append("location", locationName)
-      formData.append("lat", location.lat.toString())
-      formData.append("lng", location.lng.toString())
+      formData.append("locationName", locationName)
+      formData.append("coordinates", JSON.stringify(location))
       formData.append("notes", notes)
-      formData.append("image", selectedImage)
+      formData.append("imageData", selectedImage)
 
-      const result = await recordAttendance(formData)
+      const response = await fetch("/api/attendance", {
+        method: "POST",
+        body: formData,
+      })
 
-      if (result.success) {
-        toast({
-          title: "Success!",
-          description: "Your gym attendance has been recorded",
-        })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to record attendance")
+      }
 
-        // Reset form
+      const result = await response.json()
+
+      setFormSuccess("Attendance recorded successfully!")
+      toast({
+        title: "Success!",
+        description: "Your gym attendance has been recorded.",
+        variant: "default",
+      })
+
+      // Refresh the page to show the new attendance
+      router.refresh()
+
+      // Reset form after successful submission
+      setTimeout(() => {
         setShowForm(false)
         setSelectedImage(null)
         setLocation(null)
         setLocationName("")
         setGymName("")
         setNotes("")
-      } else {
-        toast({
-          title: "Error",
-          description: result.message || "Failed to record attendance",
-          variant: "destructive",
-        })
-      }
+        setFormSuccess(null)
+      }, 2000)
     } catch (error) {
       console.error("Error submitting form:", error)
+      setFormError(error.message || "An error occurred while recording attendance")
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error.message || "Failed to record attendance",
         variant: "destructive",
       })
     } finally {
@@ -169,6 +192,22 @@ export function AttendanceTab() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {formError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{formError}</AlertDescription>
+                </Alert>
+              )}
+
+              {formSuccess && (
+                <Alert variant="default" className="bg-green-50 text-green-800 border-green-200">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <AlertTitle>Success</AlertTitle>
+                  <AlertDescription>{formSuccess}</AlertDescription>
+                </Alert>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-4">
                   {/* Gym Name Field */}
@@ -317,7 +356,6 @@ export function AttendanceTab() {
                   setGymName("")
                   setNotes("")
                 }}
-                disabled={isSubmitting}
               >
                 Cancel
               </Button>

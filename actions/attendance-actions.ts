@@ -5,6 +5,7 @@ import dbConnect from "@/lib/mongodb"
 import User from "@/models/User"
 import Attendance from "@/models/Attendance"
 import { serializeMongooseObject } from "@/lib/utils-server"
+import { revalidatePath } from "next/cache"
 
 // Get user's attendance records
 export async function getUserAttendance(limit = 10, page = 1) {
@@ -160,6 +161,117 @@ export async function getUserAttendanceHeatmap(userId?: string, year?: number) {
   } catch (error) {
     console.error("Error getting user attendance heatmap:", error)
     return []
+  }
+}
+
+// New function to record attendance - make sure it's properly exported
+export async function recordAttendance(formData: FormData) {
+  "use server" // Add this to ensure it's treated as a server action
+
+  try {
+    const clerkUser = await currentUser()
+    if (!clerkUser) {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    await dbConnect()
+
+    // Find the MongoDB user ID from the Clerk ID
+    const user = await User.findOne({ clerkId: clerkUser.id })
+    if (!user) {
+      return { success: false, error: "User not found" }
+    }
+
+    // Extract form data
+    const gymName = formData.get("gymName") as string
+    const locationName = formData.get("locationName") as string
+    const notes = formData.get("notes") as string
+    const imageData = formData.get("imageData") as string
+
+    // Parse coordinates
+    let coordinates = { lat: 0, lng: 0 }
+    try {
+      const coordinatesStr = formData.get("coordinates") as string
+      if (coordinatesStr) {
+        coordinates = JSON.parse(coordinatesStr)
+      }
+    } catch (error) {
+      console.error("Error parsing coordinates:", error)
+      return { success: false, error: "Invalid coordinates format" }
+    }
+
+    // Validate required fields
+    if (!gymName || !locationName) {
+      return { success: false, error: "Gym name and location are required" }
+    }
+
+    // Create new attendance record
+    const newAttendance = new Attendance({
+      user: user._id,
+      date: new Date(),
+      gymName,
+      location: locationName,
+      coordinates,
+      notes,
+      image: imageData,
+      points: 1, // Default to 1 point
+    })
+
+    await newAttendance.save()
+
+    // Update user stats
+    user.totalAttendance += 1
+    user.totalPoints += 1
+    user.lastActive = new Date()
+
+    // Update streak logic
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+    yesterday.setHours(0, 0, 0, 0)
+
+    const twoDaysAgo = new Date()
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
+    twoDaysAgo.setHours(0, 0, 0, 0)
+
+    // Check if user had attendance yesterday or today already
+    const recentAttendance = await Attendance.findOne({
+      user: user._id,
+      date: { $gte: yesterday },
+    }).sort({ date: -1 })
+
+    if (recentAttendance) {
+      // User already has attendance for today or yesterday, increment streak
+      user.currentStreak += 1
+    } else {
+      // Check if user had attendance two days ago
+      const olderAttendance = await Attendance.findOne({
+        user: user._id,
+        date: { $gte: twoDaysAgo, $lt: yesterday },
+      })
+
+      if (!olderAttendance) {
+        // No recent attendance, reset streak
+        user.currentStreak = 1
+      }
+    }
+
+    await user.save()
+
+    // Revalidate the dashboard and profile pages
+    revalidatePath("/dashboard")
+    revalidatePath("/profile")
+
+    return {
+      success: true,
+      message: "Attendance recorded successfully",
+      attendance: serializeMongooseObject(newAttendance),
+    }
+  } catch (error) {
+    console.error("Error recording attendance:", error)
+    return {
+      success: false,
+      error: error.message || "Failed to record attendance",
+    }
   }
 }
 

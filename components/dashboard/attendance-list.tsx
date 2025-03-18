@@ -11,22 +11,28 @@ export function AttendanceList() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    const fetchAttendances = async () => {
-      setIsLoading(true)
-      setError(null)
-      try {
-        const result = await getUserAttendance(10, 1)
-        setAttendanceData(result.attendances || [])
-      } catch (err) {
-        console.error("Error fetching attendance:", err)
-        setError("Failed to load attendance data")
-      } finally {
-        setIsLoading(false)
-      }
+  const fetchAttendances = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const result = await getUserAttendance(10, 1)
+      setAttendanceData(result.attendances || [])
+    } catch (err) {
+      console.error("Error fetching attendance:", err)
+      setError("Failed to load attendance data")
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchAttendances()
+
+    // Set up an interval to refresh the data every minute
+    const intervalId = setInterval(fetchAttendances, 60000)
+
+    // Clean up the interval when the component unmounts
+    return () => clearInterval(intervalId)
   }, [])
 
   const getMapLink = (coordinates: { lat: number; lng: number }) => {
