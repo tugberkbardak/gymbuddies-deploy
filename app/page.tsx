@@ -82,6 +82,18 @@ export default function LandingPage() {
           </div>
         </div>
       </main>
+
+      <footer className="py-6 px-6 border-t border-border">
+        <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center">
+          <div className="flex items-center gap-2 mb-4 sm:mb-0">
+            <Image src="/logo.svg" alt="GymBuddies Logo" width={24} height={24} />
+            <p className="text-sm text-muted-foreground">GymBuddies</p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            &copy; {new Date().getFullYear()} GymBuddies. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   )
 }

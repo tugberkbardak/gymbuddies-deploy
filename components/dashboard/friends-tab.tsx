@@ -175,7 +175,7 @@ export function FriendsTab() {
             {incomingRequests.map((request) => (
               <Card key={request._id}>
                 <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                     <div className="flex items-center gap-3">
                       <Avatar>
                         <AvatarImage src={request.user?.profileImage} alt={request.user?.username} />
@@ -189,7 +189,7 @@ export function FriendsTab() {
                         <CardDescription>@{request.user?.username || "user"}</CardDescription>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button size="sm" onClick={() => handleAcceptRequest(request._id)}>
                         <Check className="h-4 w-4 mr-1" />
                         Accept
