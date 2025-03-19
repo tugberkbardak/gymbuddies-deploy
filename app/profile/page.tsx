@@ -12,6 +12,7 @@ import { getUserAttendanceHeatmap } from "@/actions/attendance-actions"
 import dbConnect from "@/lib/mongodb"
 import User from "@/models/User"
 import Friendship from "@/models/Friendship"
+import { ShareProfileButton } from "@/components/profile/share-profile-button"
 
 export default async function ProfilePage() {
   // Use currentUser instead of auth for more reliable authentication
@@ -195,9 +196,12 @@ export default async function ProfilePage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" asChild>
-                <Link href="/profile/edit">Edit Profile</Link>
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" asChild>
+                  <Link href="/profile/edit">Edit Profile</Link>
+                </Button>
+                <ShareProfileButton username={dbUser.username} />
+              </div>
             </CardFooter>
           </Card>
 

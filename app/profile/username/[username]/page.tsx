@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/card"
 import { SignInButton } from "@clerk/nextjs"
 import { JoinCTA } from "@/components/profile/join-cta"
+import { ShareProfileButton } from "@/components/profile/share-profile-button"
 
 export default async function ProfileByUsernamePage({ params }: { params: { username: string } }) {
   const user = await currentUser()
@@ -243,9 +244,12 @@ export default async function ProfileByUsernamePage({ params }: { params: { user
             <CardFooter>
               {isSignedIn ? (
                 isOwnProfile ? (
-                  <Button variant="outline" asChild>
-                    <Link href="/profile/edit">Edit Profile</Link>
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" asChild>
+                      <Link href="/profile/edit">Edit Profile</Link>
+                    </Button>
+                    <ShareProfileButton username={profileUser.username} />
+                  </div>
                 ) : (
                   <FriendshipActions
                     targetUserId={profileUser.clerkId}
@@ -257,7 +261,7 @@ export default async function ProfileByUsernamePage({ params }: { params: { user
                 <SignInButton mode="modal">
                   <Button>
                     <UserPlus className="h-4 w-4 mr-2" />
-                    Sign in to be Buddies!
+                    Sign in to add friend
                   </Button>
                 </SignInButton>
               )}
