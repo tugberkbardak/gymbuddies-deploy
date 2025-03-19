@@ -3,14 +3,19 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react"
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Calendar, ExternalLink, Building2, Loader2, AlertCircle } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { MapPin, Calendar, ExternalLink, Building2, Loader2, AlertCircle, Globe } from "lucide-react"
 import { getUserAttendance } from "@/actions/attendance-actions"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useToast } from "@/hooks/use-toast"
 
 export const AttendanceList = forwardRef(function AttendanceList(props, ref) {
+  const { toast } = useToast()
   const [attendanceData, setAttendanceData] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [updatingVisibility, setUpdatingVisibility] = useState({})
 
   const fetchAttendances = async () => {
     setIsLoading(true)
@@ -55,6 +60,41 @@ export const AttendanceList = forwardRef(function AttendanceList(props, ref) {
 
   const getMapLink = (coordinates: { lat: number; lng: number }) => {
     return `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`
+  }
+
+  const toggleVisibility = async (attendanceId, isPublic) => {
+    setUpdatingVisibility((prev) => ({ ...prev, [attendanceId]: true }))
+
+    try {
+      const response = await fetch(`/api/attendance/${attendanceId}/visibility`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ isPublic }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update visibility")
+      }
+
+      // Update the local state
+      setAttendanceData((prev) => prev.map((item) => (item._id === attendanceId ? { ...item, isPublic } : item)))
+
+      toast({
+        title: "Visibility updated",
+        description: isPublic ? "Record is now public" : "Record is now private",
+      })
+    } catch (error) {
+      console.error("Error updating visibility:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update visibility",
+        variant: "destructive",
+      })
+    } finally {
+      setUpdatingVisibility((prev) => ({ ...prev, [attendanceId]: false }))
+    }
   }
 
   if (isLoading) {
@@ -117,9 +157,27 @@ export const AttendanceList = forwardRef(function AttendanceList(props, ref) {
                   </CardDescription>
                 </div>
               </div>
-              <Badge variant="secondary" className="mt-1 sm:mt-0 self-start">
-                {item.points} {item.points === 1 ? "Point" : "Points"}
-              </Badge>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id={`public-mode-${item._id}`}
+                    checked={item.isPublic}
+                    onCheckedChange={(checked) => toggleVisibility(item._id, checked)}
+                    disabled={updatingVisibility[item._id]}
+                  />
+                  <Label htmlFor={`public-mode-${item._id}`} className="flex items-center gap-1 text-xs">
+                    <Globe className="h-3 w-3" />
+                    {updatingVisibility[item._id] ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <span>{item.isPublic ? "Public" : "Private"}</span>
+                    )}
+                  </Label>
+                </div>
+                <Badge variant="secondary" className="mt-1 sm:mt-0 self-start">
+                  {item.points} {item.points === 1 ? "Point" : "Points"}
+                </Badge>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">

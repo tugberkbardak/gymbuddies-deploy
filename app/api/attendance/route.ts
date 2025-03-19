@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     const locationName = formData.get("locationName") as string
     const notes = formData.get("notes") as string
     const imageData = formData.get("imageData") as string
+    const isPublic = formData.get("isPublic") === "true"
 
     // Parse coordinates
     let coordinates = { lat: 0, lng: 0 }
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest) {
         coordinates,
         notes,
         image: imageData,
+        isPublic,
         points: 1, // Default to 1 point if not specified
       })
 
@@ -107,6 +109,7 @@ export async function POST(req: NextRequest) {
       coordinates,
       notes,
       image: imageData,
+      isPublic,
       points: 1, // Default to 1 point if not specified
     })
 

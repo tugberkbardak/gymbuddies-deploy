@@ -13,6 +13,7 @@ export interface IAttendance extends Document {
   points: number
   notes?: string
   image?: string
+  isPublic: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -30,6 +31,7 @@ const AttendanceSchema: Schema = new Schema(
     points: { type: Number, default: 1 },
     notes: { type: String },
     image: { type: String },
+    isPublic: { type: Boolean, default: false },
   },
   { timestamps: true },
 )

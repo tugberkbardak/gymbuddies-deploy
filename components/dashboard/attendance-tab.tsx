@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Camera, MapPin, Loader2, Building2, CheckCircle2, AlertCircle, XCircle } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Camera, MapPin, Loader2, Building2, CheckCircle2, AlertCircle, XCircle, Globe } from "lucide-react"
 import { AttendanceList } from "@/components/dashboard/attendance-list"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
@@ -22,6 +24,7 @@ export function AttendanceTab() {
   const [locationName, setLocationName] = useState("")
   const [gymName, setGymName] = useState("")
   const [notes, setNotes] = useState("")
+  const [isPublic, setIsPublic] = useState(false)
   const [isLoadingLocation, setIsLoadingLocation] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -182,6 +185,7 @@ export function AttendanceTab() {
       formData.append("coordinates", JSON.stringify(location))
       formData.append("notes", notes)
       formData.append("imageData", selectedImage)
+      formData.append("isPublic", isPublic.toString())
 
       const response = await fetch("/api/attendance", {
         method: "POST",
@@ -220,6 +224,7 @@ export function AttendanceTab() {
         setLocationName("")
         setGymName("")
         setNotes("")
+        setIsPublic(false)
         setFormSuccess(null)
       }, 2000)
     } catch (error) {
@@ -443,6 +448,18 @@ export function AttendanceTab() {
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
+
+              {/* Public/Private Toggle */}
+              <div className="flex items-center space-x-2">
+                <Switch id="public-mode" checked={isPublic} onCheckedChange={setIsPublic} />
+                <Label htmlFor="public-mode" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Show in Global Feed
+                </Label>
+                <span className="text-xs text-muted-foreground ml-2">
+                  {isPublic ? "Your attendance will be visible to everyone" : "Only visible to you and your friends"}
+                </span>
+              </div>
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button
@@ -455,6 +472,7 @@ export function AttendanceTab() {
                   setLocationName("")
                   setGymName("")
                   setNotes("")
+                  setIsPublic(false)
                   setShowCamera(false)
                 }}
               >

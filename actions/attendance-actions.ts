@@ -76,14 +76,14 @@ export async function getGlobalAttendance(limit = 10, page = 1) {
 
     const skip = (page - 1) * limit
 
-    // Get attendance records for all users
-    const attendanceRecords = await Attendance.find()
+    // Get only public attendance records for all users
+    const attendanceRecords = await Attendance.find({ isPublic: true })
       .sort({ date: -1 })
       .skip(skip)
       .limit(limit)
       .populate("user", "username firstName lastName profileImage")
 
-    const total = await Attendance.countDocuments()
+    const total = await Attendance.countDocuments({ isPublic: true })
 
     // Serialize the Mongoose objects
     const serializedAttendance = serializeMongooseObject(attendanceRecords)
