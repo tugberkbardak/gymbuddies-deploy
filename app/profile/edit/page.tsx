@@ -12,12 +12,14 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import Link from "next/link"
 import { ChevronLeft, Loader2 } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function EditProfilePage() {
   const { user, isLoaded } = useUser()
   const router = useRouter()
 
   const [isUpdating, setIsUpdating] = useState(false)
+  const [error, setError] = useState(null)
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -32,8 +34,11 @@ export default function EditProfilePage() {
         lastName: user.lastName || "",
         bio: (user.unsafeMetadata as any)?.bio || "",
       })
+    } else if (isLoaded && !user) {
+      // Redirect to sign-in if not authenticated
+      router.push("/sign-in")
     }
-  }, [isLoaded, user])
+  }, [isLoaded, user, router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -42,8 +47,12 @@ export default function EditProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
 
-    if (!user) return
+    if (!user) {
+      setError("You must be signed in to update your profile")
+      return
+    }
 
     setIsUpdating(true)
 
@@ -61,6 +70,7 @@ export default function EditProfilePage() {
       router.refresh()
     } catch (error) {
       console.error("Error updating profile:", error)
+      setError(error.message || "Failed to update profile")
     } finally {
       setIsUpdating(false)
     }
@@ -70,6 +80,20 @@ export default function EditProfilePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
+          <p className="mb-4">You need to be signed in to edit your profile.</p>
+          <Button asChild>
+            <Link href="/sign-in">Sign In</Link>
+          </Button>
+        </div>
       </div>
     )
   }
@@ -95,6 +119,13 @@ export default function EditProfilePage() {
               <CardDescription>Update your profile information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name</Label>

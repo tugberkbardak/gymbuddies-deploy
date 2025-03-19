@@ -15,7 +15,6 @@ export default function SignUpPage() {
               footerActionLink: "text-primary hover:text-primary/90",
             },
           }}
-          redirectUrl="/dashboard"
         />
       </div>
     </div>

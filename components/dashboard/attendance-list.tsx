@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react"
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Calendar, ExternalLink, Building2, Loader2 } from "lucide-react"
+import { MapPin, Calendar, ExternalLink, Building2, Loader2, AlertCircle } from "lucide-react"
 import { getUserAttendance } from "@/actions/attendance-actions"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
-export function AttendanceList() {
+export const AttendanceList = forwardRef(function AttendanceList(props, ref) {
   const [attendanceData, setAttendanceData] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -15,15 +16,32 @@ export function AttendanceList() {
     setIsLoading(true)
     setError(null)
     try {
+      // First try to fetch using the server action
       const result = await getUserAttendance(10, 1)
-      setAttendanceData(result.attendances || [])
+
+      if (result && result.attendances) {
+        setAttendanceData(result.attendances || [])
+      } else {
+        // If server action fails, try the API route as fallback
+        const response = await fetch("/api/attendance?limit=10&page=1")
+        if (!response.ok) {
+          throw new Error(`Failed to fetch attendance: ${response.statusText}`)
+        }
+        const data = await response.json()
+        setAttendanceData(data.attendances || [])
+      }
     } catch (err) {
       console.error("Error fetching attendance:", err)
-      setError("Failed to load attendance data")
+      setError("Failed to load attendance data. Please refresh the page.")
     } finally {
       setIsLoading(false)
     }
   }
+
+  // Expose the refresh method to parent components
+  useImperativeHandle(ref, () => ({
+    refreshAttendances: fetchAttendances,
+  }))
 
   useEffect(() => {
     fetchAttendances()
@@ -50,7 +68,10 @@ export function AttendanceList() {
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-destructive">{error}</p>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </div>
     )
   }
@@ -64,7 +85,7 @@ export function AttendanceList() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="attendance-list">
       <h3 className="text-lg font-medium">Recent Attendance</h3>
 
       {attendanceData.map((item) => (
@@ -118,5 +139,5 @@ export function AttendanceList() {
       ))}
     </div>
   )
-}
+})
 

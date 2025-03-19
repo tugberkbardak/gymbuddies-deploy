@@ -1,17 +1,17 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Camera, MapPin, Upload, Loader2, Building2, CheckCircle2, AlertCircle } from "lucide-react"
+import { Camera, MapPin, Loader2, Building2, CheckCircle2, AlertCircle, XCircle } from "lucide-react"
 import { AttendanceList } from "@/components/dashboard/attendance-list"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
+import { useAttendanceRefresh } from "@/hooks/use-attendance-refresh"
 
 export function AttendanceTab() {
   const { toast } = useToast()
@@ -28,13 +28,79 @@ export function AttendanceTab() {
   const [formError, setFormError] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        setSelectedImage(event.target?.result as string)
+  // Camera states
+  const [showCamera, setShowCamera] = useState(false)
+  const [cameraError, setCameraError] = useState<string | null>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+
+  const { attendanceListRef, refreshAttendanceList } = useAttendanceRefresh()
+
+  // Start camera when showCamera is true
+  useEffect(() => {
+    if (showCamera) {
+      startCamera()
+    } else {
+      stopCamera()
+    }
+
+    return () => {
+      stopCamera()
+    }
+  }, [showCamera])
+
+  const startCamera = async () => {
+    setCameraError(null)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }, // Use back camera if available
+        audio: false,
+      })
+
+      streamRef.current = stream
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
       }
-      reader.readAsDataURL(e.target.files[0])
+    } catch (err) {
+      console.error("Error accessing camera:", err)
+      setCameraError("Could not access camera. Please ensure you've granted camera permissions.")
+    }
+  }
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop())
+      streamRef.current = null
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
+  }
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current
+      const canvas = canvasRef.current
+
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+
+      // Draw the video frame to the canvas
+      const ctx = canvas.getContext("2d")
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+        // Convert canvas to data URL
+        const imageData = canvas.toDataURL("image/jpeg")
+        setSelectedImage(imageData)
+
+        // Hide camera after capturing
+        setShowCamera(false)
+      }
     }
   }
 
@@ -106,7 +172,7 @@ export function AttendanceTab() {
       }
 
       if (!selectedImage) {
-        throw new Error("Please upload a gym photo")
+        throw new Error("Please take a gym photo")
       }
 
       // Submit form using fetch API instead of direct server action
@@ -136,8 +202,15 @@ export function AttendanceTab() {
         variant: "default",
       })
 
-      // Refresh the page to show the new attendance
-      router.refresh()
+      // Instead of router.refresh() which causes a full page refresh
+      // We'll update the attendance list directly
+      refreshAttendanceList()
+
+      // Stay on the attendance tab
+      const urlParams = new URLSearchParams(window.location.search)
+      if (!urlParams.has("tab") || urlParams.get("tab") !== "attendance") {
+        router.push("/dashboard?tab=attendance")
+      }
 
       // Reset form after successful submission
       setTimeout(() => {
@@ -294,40 +367,67 @@ export function AttendanceTab() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Camera className="h-4 w-4" />
-                    <label htmlFor="photo" className="text-sm font-medium">
-                      Gym Photo
-                    </label>
+                    <label className="text-sm font-medium">Gym Photo</label>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="photo"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageChange}
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById("photo")?.click()}
-                      className="w-full"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Photo
+
+                  {!selectedImage && !showCamera && (
+                    <Button type="button" variant="outline" onClick={() => setShowCamera(true)} className="w-full">
+                      <Camera className="h-4 w-4 mr-2" />
+                      Take Photo
                     </Button>
-                  </div>
+                  )}
+
+                  {cameraError && (
+                    <Alert variant="destructive" className="mb-2">
+                      <AlertDescription>{cameraError}</AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               </div>
 
+              {/* Camera View */}
+              {showCamera && (
+                <div className="relative">
+                  <div className="aspect-video w-full overflow-hidden rounded-md bg-muted">
+                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <Button type="button" variant="outline" onClick={() => setShowCamera(false)}>
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Cancel
+                    </Button>
+                    <Button type="button" onClick={capturePhoto}>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Capture
+                    </Button>
+                  </div>
+                  <canvas ref={canvasRef} className="hidden" />
+                </div>
+              )}
+
+              {/* Display captured image */}
               {selectedImage && (
-                <div className="relative aspect-video w-full overflow-hidden rounded-md">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={selectedImage || "/placeholder.svg"}
-                    alt="Selected gym photo"
-                    className="object-cover w-full h-full"
-                  />
+                <div className="relative">
+                  <div className="aspect-video w-full overflow-hidden rounded-md">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={selectedImage || "/placeholder.svg"}
+                      alt="Captured gym photo"
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedImage(null)
+                      setShowCamera(true)
+                    }}
+                    className="mt-2"
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Retake Photo
+                  </Button>
                 </div>
               )}
 
@@ -355,6 +455,7 @@ export function AttendanceTab() {
                   setLocationName("")
                   setGymName("")
                   setNotes("")
+                  setShowCamera(false)
                 }}
               >
                 Cancel
@@ -374,7 +475,7 @@ export function AttendanceTab() {
         </Card>
       )}
 
-      <AttendanceList />
+      <AttendanceList ref={attendanceListRef} />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/server"
+import { auth } from "@clerk/nextjs/server"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,10 +15,10 @@ import AttendanceHeatmap from "@/components/profile/attendance-heatmap"
 import { getUserAttendanceHeatmap } from "@/actions/attendance-actions"
 
 export default async function UserProfilePage({ params }: { params: { id: string } }) {
-  const viewer = await currentUser()
+  const { userId } = auth()
 
-  if (!viewer) {
-    redirect("/")
+  if (!userId) {
+    redirect("/sign-in")
   }
 
   await dbConnect()
@@ -177,7 +177,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           </Card>
 
           {/* Attendance Heatmap Card */}
-          <Card>
+          <Card className="overflow-hidden">
             <CardHeader>
               <CardTitle>Gym Attendance</CardTitle>
               <CardDescription>Gym attendance throughout the year</CardDescription>

@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Calendar, ExternalLink, Building2, Loader2 } from "lucide-react"
+import { MapPin, Calendar, ExternalLink, Building2, Loader2, AlertCircle } from "lucide-react"
 import { getGlobalAttendance } from "@/actions/attendance-actions"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export function GlobalTab() {
   const [globalAttendanceData, setGlobalAttendanceData] = useState([])
@@ -21,7 +22,7 @@ export function GlobalTab() {
         setGlobalAttendanceData(result.attendances || [])
       } catch (err) {
         console.error("Error fetching global attendance:", err)
-        setError("Failed to load global attendance data")
+        setError("Failed to load global attendance data. Please refresh the page.")
       } finally {
         setIsLoading(false)
       }
@@ -45,7 +46,10 @@ export function GlobalTab() {
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-destructive">{error}</p>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </div>
     )
   }
@@ -53,7 +57,9 @@ export function GlobalTab() {
   if (globalAttendanceData.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">No global attendance records found yet.</p>
+        <p className="text-muted-foreground">
+          No global attendance records found yet. Be the first to record a gym visit!
+        </p>
       </div>
     )
   }

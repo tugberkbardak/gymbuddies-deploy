@@ -14,10 +14,11 @@ import User from "@/models/User"
 import Friendship from "@/models/Friendship"
 
 export default async function ProfilePage() {
+  // Use currentUser instead of auth for more reliable authentication
   const user = await currentUser()
 
   if (!user) {
-    redirect("/")
+    redirect("/sign-in")
   }
 
   // Fetch attendance heatmap data
@@ -28,21 +29,23 @@ export default async function ProfilePage() {
   const dbUser = await User.findOne({ clerkId: user.id })
 
   if (!dbUser) {
-    // Handle case where user is not found in MongoDB
-    return (
-      <div className="min-h-screen flex flex-col">
-        <DashboardHeader />
-        <main className="flex-1 container py-6">
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold mb-4">User profile not found</h2>
-            <p className="text-muted-foreground mb-6">Your user profile hasn't been set up in our database yet.</p>
-            <Button asChild>
-              <Link href="/dashboard">Go to Dashboard</Link>
-            </Button>
-          </div>
-        </main>
-      </div>
-    )
+    // Create a new user if not found in the database
+    const newUser = new User({
+      clerkId: user.id,
+      username: user.username || `user_${Date.now()}`,
+      email: user.emailAddresses[0]?.emailAddress || `user_${Date.now()}@example.com`,
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      profileImage: user.imageUrl || "",
+      joinedDate: new Date(),
+      lastActive: new Date(),
+    })
+
+    await newUser.save()
+    console.log("Created new user in database:", newUser._id)
+
+    // Redirect to dashboard to ensure everything is properly loaded
+    redirect("/dashboard")
   }
 
   // Calculate real rank among friends
@@ -107,19 +110,17 @@ export default async function ProfilePage() {
               <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage src={user.imageUrl} alt={user.username || ""} />
+                    <AvatarImage src={dbUser.profileImage} alt={dbUser.username} />
                     <AvatarFallback>
-                      {user.firstName?.charAt(0)}
-                      {user.lastName?.charAt(0)}
+                      {dbUser.firstName?.charAt(0) || ""}
+                      {dbUser.lastName?.charAt(0) || ""}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <CardTitle className="text-2xl">
-                      {user.firstName} {user.lastName}
+                      {dbUser.firstName} {dbUser.lastName}
                     </CardTitle>
-                    <CardDescription>
-                      @{user.username || user.emailAddresses[0].emailAddress.split("@")[0]}
-                    </CardDescription>
+                    <CardDescription>@{dbUser.username}</CardDescription>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -135,6 +136,14 @@ export default async function ProfilePage() {
               </div>
             </CardHeader>
             <CardContent>
+              {/* Add bio section here */}
+              {dbUser.bio && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium mb-2">Bio</h3>
+                  <p className="text-sm text-muted-foreground">{dbUser.bio}</p>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
                 <Card>
                   <CardHeader className="py-4">
@@ -193,7 +202,7 @@ export default async function ProfilePage() {
           </Card>
 
           {/* Attendance Heatmap Card */}
-          <Card>
+          <Card className="overflow-hidden">
             <CardHeader>
               <CardTitle>Gym Attendance</CardTitle>
               <CardDescription>Your gym attendance throughout the year</CardDescription>

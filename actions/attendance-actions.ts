@@ -10,25 +10,33 @@ import { revalidatePath } from "next/cache"
 // Get user's attendance records
 export async function getUserAttendance(limit = 10, page = 1) {
   try {
-    const clerkUser = await currentUser()
-    if (!clerkUser) {
+    const user = await currentUser()
+    if (!user) {
       throw new Error("Unauthorized")
     }
 
     await dbConnect()
 
     // Find the MongoDB user ID from the Clerk ID
-    const user = await User.findOne({ clerkId: clerkUser.id })
-    if (!user) {
-      throw new Error("User not found")
+    const dbUser = await User.findOne({ clerkId: user.id })
+    if (!dbUser) {
+      return {
+        attendances: [],
+        pagination: {
+          total: 0,
+          page,
+          limit,
+          pages: 0,
+        },
+      }
     }
 
     const skip = (page - 1) * limit
 
     // Get attendance records for the user
-    const attendanceRecords = await Attendance.find({ user: user._id }).sort({ date: -1 }).skip(skip).limit(limit)
+    const attendanceRecords = await Attendance.find({ user: dbUser._id }).sort({ date: -1 }).skip(skip).limit(limit)
 
-    const total = await Attendance.countDocuments({ user: user._id })
+    const total = await Attendance.countDocuments({ user: dbUser._id })
 
     // Serialize the Mongoose objects
     const serializedAttendance = serializeMongooseObject(attendanceRecords)
@@ -59,8 +67,8 @@ export async function getUserAttendance(limit = 10, page = 1) {
 // Get global attendance records
 export async function getGlobalAttendance(limit = 10, page = 1) {
   try {
-    const clerkUser = await currentUser()
-    if (!clerkUser) {
+    const user = await currentUser()
+    if (!user) {
       throw new Error("Unauthorized")
     }
 
@@ -106,20 +114,20 @@ export async function getGlobalAttendance(limit = 10, page = 1) {
 // Get user's attendance heatmap data
 export async function getUserAttendanceHeatmap(userId?: string, year?: number) {
   try {
-    const clerkUser = await currentUser()
-    if (!clerkUser) {
+    const currentUserData = await currentUser()
+    if (!currentUserData) {
       throw new Error("Unauthorized")
     }
 
     await dbConnect()
 
     // Determine which user to get data for
-    const targetUserId = userId || clerkUser.id
+    const targetUserId = userId || currentUserData.id
 
     // Find the MongoDB user ID from the Clerk ID
     const user = await User.findOne({ clerkId: targetUserId })
     if (!user) {
-      throw new Error("User not found")
+      return []
     }
 
     // Set default year to current year if not provided
@@ -166,20 +174,34 @@ export async function getUserAttendanceHeatmap(userId?: string, year?: number) {
 
 // New function to record attendance - make sure it's properly exported
 export async function recordAttendance(formData: FormData) {
-  "use server" // Add this to ensure it's treated as a server action
-
   try {
-    const clerkUser = await currentUser()
-    if (!clerkUser) {
+    const user = await currentUser()
+    if (!user) {
       return { success: false, error: "Unauthorized" }
     }
 
     await dbConnect()
 
     // Find the MongoDB user ID from the Clerk ID
-    const user = await User.findOne({ clerkId: clerkUser.id })
-    if (!user) {
-      return { success: false, error: "User not found" }
+    const dbUser = await User.findOne({ clerkId: user.id })
+    if (!dbUser) {
+      // Create user if not found
+      const newUser = new User({
+        clerkId: user.id,
+        username: user.username || `user_${Date.now()}`,
+        email: user.emailAddresses[0]?.emailAddress || `user_${Date.now()}@example.com`,
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        profileImage: user.imageUrl || "",
+        joinedDate: new Date(),
+        lastActive: new Date(),
+      })
+
+      await newUser.save()
+      console.log("Created new user in database:", newUser._id)
+
+      // Use the newly created user
+      const dbUser = newUser
     }
 
     // Extract form data
@@ -207,7 +229,7 @@ export async function recordAttendance(formData: FormData) {
 
     // Create new attendance record
     const newAttendance = new Attendance({
-      user: user._id,
+      user: dbUser._id,
       date: new Date(),
       gymName,
       location: locationName,
@@ -220,9 +242,9 @@ export async function recordAttendance(formData: FormData) {
     await newAttendance.save()
 
     // Update user stats
-    user.totalAttendance += 1
-    user.totalPoints += 1
-    user.lastActive = new Date()
+    dbUser.totalAttendance = (dbUser.totalAttendance || 0) + 1
+    dbUser.totalPoints = (dbUser.totalPoints || 0) + 1
+    dbUser.lastActive = new Date()
 
     // Update streak logic
     const yesterday = new Date()
@@ -235,27 +257,27 @@ export async function recordAttendance(formData: FormData) {
 
     // Check if user had attendance yesterday or today already
     const recentAttendance = await Attendance.findOne({
-      user: user._id,
+      user: dbUser._id,
       date: { $gte: yesterday },
     }).sort({ date: -1 })
 
     if (recentAttendance) {
       // User already has attendance for today or yesterday, increment streak
-      user.currentStreak += 1
+      dbUser.currentStreak = (dbUser.currentStreak || 0) + 1
     } else {
       // Check if user had attendance two days ago
       const olderAttendance = await Attendance.findOne({
-        user: user._id,
+        user: dbUser._id,
         date: { $gte: twoDaysAgo, $lt: yesterday },
       })
 
       if (!olderAttendance) {
         // No recent attendance, reset streak
-        user.currentStreak = 1
+        dbUser.currentStreak = 1
       }
     }
 
-    await user.save()
+    await dbUser.save()
 
     // Revalidate the dashboard and profile pages
     revalidatePath("/dashboard")

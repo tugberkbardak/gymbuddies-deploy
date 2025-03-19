@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Progress } from "@/components/ui/progress"
 
 interface AttendanceHeatmapProps {
   attendanceData: {
@@ -14,6 +15,15 @@ interface AttendanceHeatmapProps {
 export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHeatmapProps) {
   const [heatmapData, setHeatmapData] = useState<Record<string, number>>({})
   const [year, setYear] = useState<number>(new Date().getFullYear())
+  const [monthlyStats, setMonthlyStats] = useState<
+    Array<{
+      name: string
+      shortName: string
+      daysInMonth: number
+      daysAttended: number
+      percentage: number
+    }>
+  >([])
 
   // Process attendance data into a format suitable for the heatmap
   useEffect(() => {
@@ -25,9 +35,53 @@ export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHea
     })
 
     setHeatmapData(processedData)
-  }, [attendanceData])
 
-  // Generate dates for the entire year
+    // Calculate monthly statistics
+    const months = [
+      { name: "January", shortName: "Jan" },
+      { name: "February", shortName: "Feb" },
+      { name: "March", shortName: "Mar" },
+      { name: "April", shortName: "Apr" },
+      { name: "May", shortName: "May" },
+      { name: "June", shortName: "Jun" },
+      { name: "July", shortName: "Jul" },
+      { name: "August", shortName: "Aug" },
+      { name: "September", shortName: "Sep" },
+      { name: "October", shortName: "Oct" },
+      { name: "November", shortName: "Nov" },
+      { name: "December", shortName: "Dec" },
+    ]
+
+    const stats = months.map((month, index) => {
+      // Get days in month
+      const daysInMonth = new Date(year, index + 1, 0).getDate()
+
+      // Count days attended in this month
+      let daysAttended = 0
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, index, day)
+        const dateStr = date.toISOString().split("T")[0]
+        if (processedData[dateStr]) {
+          daysAttended++
+        }
+      }
+
+      // Calculate percentage
+      const percentage = daysInMonth > 0 ? (daysAttended / daysInMonth) * 100 : 0
+
+      return {
+        name: month.name,
+        shortName: month.shortName,
+        daysInMonth,
+        daysAttended,
+        percentage,
+      }
+    })
+
+    setMonthlyStats(stats)
+  }, [attendanceData, year])
+
+  // Generate dates for the entire year (for desktop view)
   const generateYearDates = (year: number) => {
     const dates = []
     const startDate = new Date(year, 0, 1) // Jan 1
@@ -44,12 +98,11 @@ export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHea
 
   const yearDates = generateYearDates(year)
 
-  // Group dates by month and week
+  // Group dates by month and week for desktop view
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-
   const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-  // Group dates by week
+  // Group dates by week for desktop view
   const weeks: Date[][] = []
   let currentWeek: Date[] = []
 
@@ -103,7 +156,29 @@ export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHea
         <div className="text-sm text-muted-foreground">{year}</div>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Mobile-optimized view with progress bars */}
+      <div className="block md:hidden">
+        <div className="space-y-4">
+          {monthlyStats.map((month) => (
+            <div key={month.name} className="space-y-1">
+              <div className="flex justify-between items-center">
+                <div className="text-sm font-medium">{month.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {month.daysAttended}/{month.daysInMonth} days ({Math.round(month.percentage)}%)
+                </div>
+              </div>
+              <Progress
+                value={month.percentage}
+                className="h-2"
+                indicatorClassName={month.percentage > 0 ? "bg-[#83FFE6]" : ""}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop view - only shown on md screens and up */}
+      <div className="hidden md:block overflow-x-auto">
         <div className="min-w-[800px]">
           <div className="flex">
             <div className="w-12"></div>
@@ -128,14 +203,14 @@ export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHea
               )}
             </div>
 
-            <div className="flex-1 grid grid-flow-col gap-[3px]">
+            <div className="flex-1 grid grid-flow-col gap-[2px]">
               {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="grid grid-flow-row gap-[3px]">
+                <div key={weekIndex} className="grid grid-flow-row gap-[2px]">
                   {week.map((date, dateIndex) => (
                     <TooltipProvider key={dateIndex}>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className={cn("w-5 h-5 rounded-sm", getCellColor(date))} />
+                          <div className={cn("w-4 h-4 rounded-sm", getCellColor(date))} />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>{formatDate(date)}</p>
@@ -154,10 +229,10 @@ export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHea
           </div>
 
           <div className="flex justify-end items-center mt-2">
-            <div className="text-xs text-muted-foreground mr-2">Not</div>
+            <div className="text-xs text-muted-foreground mr-2">Less</div>
             <div className="bg-gray-800 w-3 h-3 rounded-sm"></div>
             <div className="bg-[#83FFE6] w-3 h-3 rounded-sm ml-1"></div>
-            <div className="text-xs text-muted-foreground ml-2">Attended</div>
+            <div className="text-xs text-muted-foreground ml-2">More</div>
           </div>
         </div>
       </div>

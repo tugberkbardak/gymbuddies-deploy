@@ -2,14 +2,23 @@
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { SignInButton, SignUpButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 
 export default function LandingPage() {
-  const { isSignedIn } = useUser()
+  const { isSignedIn, isLoaded } = useUser()
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+
+  // Check if user is already signed in when component mounts
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      // If user is already signed in, redirect to dashboard
+      console.log("User is already signed in, redirecting to dashboard")
+      router.push("/dashboard")
+    }
+  }, [isLoaded, isSignedIn, router])
 
   const handleDashboardClick = () => {
     setIsLoading(true)
@@ -69,11 +78,10 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Modified image container to display properly on all devices */}
         <div className="w-full max-w-md mx-auto mt-8">
           <div className="relative aspect-square w-full">
             <Image
-              src="gymimage.png"
+              src="/placeholder.svg?height=500&width=500"
               alt="People working out at the gym"
               fill
               className="object-cover rounded-lg shadow-lg"
