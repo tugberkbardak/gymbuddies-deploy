@@ -7,8 +7,11 @@ import { Badge } from "@/components/ui/badge"
 import { MapPin, Calendar, ExternalLink, Building2, Loader2, AlertCircle } from "lucide-react"
 import { getGlobalAttendance } from "@/actions/attendance-actions"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import Link from "next/link"
+import { useToast } from "@/hooks/use-toast"
 
 export function GlobalTab() {
+  const { toast } = useToast()
   const [globalAttendanceData, setGlobalAttendanceData] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -86,10 +89,19 @@ export function GlobalTab() {
                     <AvatarFallback>{item.user?.username?.charAt(0) || "U"}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <CardTitle className="text-base">
-                      {item.user?.firstName || ""} {item.user?.lastName || ""}
-                      {!item.user?.firstName && !item.user?.lastName && "User"}
-                    </CardTitle>
+                    {item.user?.username ? (
+                      <Link href={`/profile/username/${item.user.username}`} className="hover:underline">
+                        <CardTitle className="text-base">
+                          {item.user?.firstName || ""} {item.user?.lastName || ""}
+                          {!item.user?.firstName && !item.user?.lastName && item.user?.username}
+                        </CardTitle>
+                      </Link>
+                    ) : (
+                      <CardTitle className="text-base">
+                        {item.user?.firstName || ""} {item.user?.lastName || ""}
+                        {!item.user?.firstName && !item.user?.lastName && "User"}
+                      </CardTitle>
+                    )}
                     <CardDescription>@{item.user?.username || "user"}</CardDescription>
                   </div>
                 </div>

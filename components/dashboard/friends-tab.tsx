@@ -182,10 +182,19 @@ export function FriendsTab() {
                         <AvatarFallback>{request.user?.username?.charAt(0) || "U"}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <CardTitle className="text-base">
-                          {request.user?.firstName || ""} {request.user?.lastName || ""}
-                          {!request.user?.firstName && !request.user?.lastName && "User"}
-                        </CardTitle>
+                        {request.user?.username ? (
+                          <Link href={`/profile/username/${request.user.username}`} className="hover:underline">
+                            <CardTitle className="text-base">
+                              {request.user?.firstName || ""} {request.user?.lastName || ""}
+                              {!request.user?.firstName && !request.user?.lastName && request.user?.username}
+                            </CardTitle>
+                          </Link>
+                        ) : (
+                          <CardTitle className="text-base">
+                            {request.user?.firstName || ""} {request.user?.lastName || ""}
+                            {!request.user?.firstName && !request.user?.lastName && "User"}
+                          </CardTitle>
+                        )}
                         <CardDescription>@{request.user?.username || "user"}</CardDescription>
                       </div>
                     </div>
@@ -222,10 +231,19 @@ export function FriendsTab() {
                         <AvatarFallback>{request.friend?.username?.charAt(0) || "U"}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <CardTitle className="text-base">
-                          {request.friend?.firstName || ""} {request.friend?.lastName || ""}
-                          {!request.friend?.firstName && !request.friend?.lastName && "User"}
-                        </CardTitle>
+                        {request.friend?.username ? (
+                          <Link href={`/profile/username/${request.friend.username}`} className="hover:underline">
+                            <CardTitle className="text-base">
+                              {request.friend?.firstName || ""} {request.friend?.lastName || ""}
+                              {!request.friend?.firstName && !request.friend?.lastName && request.friend?.username}
+                            </CardTitle>
+                          </Link>
+                        ) : (
+                          <CardTitle className="text-base">
+                            {request.friend?.firstName || ""} {request.friend?.lastName || ""}
+                            {!request.friend?.firstName && !request.friend?.lastName && "User"}
+                          </CardTitle>
+                        )}
                         <CardDescription>@{request.friend?.username || "user"}</CardDescription>
                       </div>
                     </div>
@@ -269,7 +287,6 @@ export function FriendsTab() {
         ) : friends.length > 0 ? (
           <div className="space-y-3">
             {friends.map((friendship) => {
-              console.log("Friend data:", friendship.friend)
               return (
                 <Card key={friendship.friendship?._id || Math.random()}>
                   <CardHeader className="pb-2">
@@ -280,26 +297,21 @@ export function FriendsTab() {
                           <AvatarFallback>{friendship.friend?.username?.charAt(0) || "U"}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <Link
-                            href={friendship.friend?.clerkId ? `/profile/${friendship.friend.clerkId}` : "#"}
-                            className="hover:underline"
-                            onClick={(e) => {
-                              if (!friendship.friend?.clerkId) {
-                                e.preventDefault()
-                                console.error("Missing clerkId for friend:", friendship.friend)
-                                toast({
-                                  title: "Error",
-                                  description: "Cannot view profile: User ID is missing",
-                                  variant: "destructive",
-                                })
-                              }
-                            }}
-                          >
+                          {friendship.friend?.username ? (
+                            <Link href={`/profile/username/${friendship.friend.username}`} className="hover:underline">
+                              <CardTitle className="text-base">
+                                {friendship.friend?.firstName || ""} {friendship.friend?.lastName || ""}
+                                {!friendship.friend?.firstName &&
+                                  !friendship.friend?.lastName &&
+                                  friendship.friend?.username}
+                              </CardTitle>
+                            </Link>
+                          ) : (
                             <CardTitle className="text-base">
                               {friendship.friend?.firstName || ""} {friendship.friend?.lastName || ""}
                               {!friendship.friend?.firstName && !friendship.friend?.lastName && "User"}
                             </CardTitle>
-                          </Link>
+                          )}
                           <CardDescription>@{friendship.friend?.username || "user"}</CardDescription>
                         </div>
                       </div>
