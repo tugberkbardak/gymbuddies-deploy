@@ -17,9 +17,11 @@ import { Badge } from "@/components/ui/badge"
 import { UserPlus, Search, Check, Loader2, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useRouter } from "next/navigation"
 
 export function AddFriendDialog({ onFriendRequestSent }) {
   const { toast } = useToast()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState([])
@@ -111,6 +113,9 @@ export function AddFriendDialog({ onFriendRequestSent }) {
         if (onFriendRequestSent) {
           onFriendRequestSent()
         }
+
+        // Refresh the page to update the notification badge on the recipient's side
+        router.refresh()
       } else {
         throw new Error(result.message || "Failed to send friend request")
       }
@@ -187,12 +192,12 @@ export function AddFriendDialog({ onFriendRequestSent }) {
                   </div>
 
                   {user.friendshipStatus === "accepted" ? (
-                    <Badge variant="outline" className="bg-green-50">
+                    <Badge variant="outline" className="bg-green-50 text-black">
                       <Check className="h-3 w-3 mr-1" />
                       Friends
                     </Badge>
                   ) : user.friendshipStatus === "pending" ? (
-                    <Badge variant="outline" className="bg-amber-50">
+                    <Badge variant="outline" className="bg-amber-50 text-black">
                       Request Sent
                     </Badge>
                   ) : (

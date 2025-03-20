@@ -10,9 +10,11 @@ import { AddFriendDialog } from "@/components/dashboard/add-friend-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export function FriendsTab() {
   const { toast } = useToast()
+  const router = useRouter()
   const [friends, setFriends] = useState([])
   const [incomingRequests, setIncomingRequests] = useState([])
   const [outgoingRequests, setOutgoingRequests] = useState([])
@@ -103,6 +105,7 @@ export function FriendsTab() {
           description: "You are now friends!",
         })
         loadData() // Refresh data
+        router.refresh() // Refresh the page to update the notification badge
       } else {
         throw new Error(result.message || "Failed to accept friend request")
       }
@@ -134,6 +137,7 @@ export function FriendsTab() {
           title: "Friend request declined",
         })
         loadData() // Refresh data
+        router.refresh() // Refresh the page to update the notification badge
       } else {
         throw new Error(result.message || "Failed to decline friend request")
       }

@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs"
+import { currentUser } from "@clerk/nextjs/server"
 import dbConnect from "@/lib/mongodb"
 import User from "@/models/User"
 import Friendship from "@/models/Friendship"
@@ -315,6 +315,35 @@ export async function rejectFriendRequest(requestId: string) {
   } catch (error) {
     console.error("Error rejecting friend request:", error)
     return { success: false, message: error.message || "Failed to reject friend request" }
+  }
+}
+
+// Get pending friend requests count
+export async function getPendingFriendRequestsCount() {
+  try {
+    const clerkUser = await currentUser()
+    if (!clerkUser) {
+      return 0
+    }
+
+    await dbConnect()
+
+    // Find the user in MongoDB
+    const user = await User.findOne({ clerkId: clerkUser.id })
+    if (!user) {
+      return 0
+    }
+
+    // Count pending friend requests where the user is the recipient
+    const count = await Friendship.countDocuments({
+      friend: user._id,
+      status: "pending",
+    })
+
+    return count
+  } catch (error) {
+    console.error("Error getting pending friend requests count:", error)
+    return 0
   }
 }
 
