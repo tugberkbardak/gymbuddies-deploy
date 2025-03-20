@@ -25,6 +25,7 @@ import {
 import { SignInButton } from "@clerk/nextjs"
 import { JoinCTA } from "@/components/profile/join-cta"
 import { ShareProfileButton } from "@/components/profile/share-profile-button"
+import { BuddiesCard } from "@/components/profile/buddies-card"
 
 export default async function ProfileByUsernamePage({ params }: { params: { username: string } }) {
   const user = await currentUser()
@@ -63,6 +64,19 @@ export default async function ProfileByUsernamePage({ params }: { params: { user
         </main>
       </div>
     )
+  }
+
+  // Add this after the profileUser is fetched
+  let friendCount = 0
+  if (profileUser) {
+    // Count the number of accepted friendships
+    const friendships = await Friendship.countDocuments({
+      $or: [
+        { user: profileUser._id, status: "accepted" },
+        { friend: profileUser._id, status: "accepted" },
+      ],
+    })
+    friendCount = friendships
   }
 
   // User stats - simplified for non-signed-in users
@@ -215,6 +229,10 @@ export default async function ProfileByUsernamePage({ params }: { params: { user
                     <p className="text-xs text-muted-foreground">Gym visits</p>
                   </CardContentUI>
                 </CardUI>
+
+                {isSignedIn && (
+                  <BuddiesCard userId={profileUser.clerkId} username={profileUser.username} friendCount={friendCount} />
+                )}
 
                 {isSignedIn && (
                   <>

@@ -14,6 +14,7 @@ import mongoose from "mongoose"
 import AttendanceHeatmap from "@/components/profile/attendance-heatmap"
 import { getUserAttendanceHeatmap } from "@/actions/attendance-actions"
 import { FriendshipActions } from "@/components/profile/friendship-actions"
+import { BuddiesCard } from "@/components/profile/buddies-card"
 
 export default async function UserProfilePage({ params }: { params: { id: string } }) {
   const { userId } = auth()
@@ -214,15 +215,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
-                  </CardHeader>
-                  <CardContent className="py-2">
-                    <div className="text-2xl font-bold">{userStats.currentStreak}</div>
-                    <p className="text-xs text-muted-foreground">Days in a row</p>
-                  </CardContent>
-                </Card>
+                <BuddiesCard
+                  userId={params.id}
+                  username={profileUser.username}
+                  friendCount={friendIds.length - 1} // Subtract 1 because friendIds includes the user
+                />
 
                 <Card>
                   <CardHeader className="py-4">

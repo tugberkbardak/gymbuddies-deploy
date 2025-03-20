@@ -13,6 +13,7 @@ import dbConnect from "@/lib/mongodb"
 import User from "@/models/User"
 import Friendship from "@/models/Friendship"
 import { ShareProfileButton } from "@/components/profile/share-profile-button"
+import { BuddiesCard } from "@/components/profile/buddies-card"
 
 export default async function ProfilePage() {
   // Use currentUser instead of auth for more reliable authentication
@@ -156,6 +157,12 @@ export default async function ProfilePage() {
                   </CardContent>
                 </Card>
 
+                <BuddiesCard
+                  userId={user.id}
+                  username={dbUser.username}
+                  friendCount={friendIds.length - 1} // Subtract 1 because friendIds includes the user
+                />
+
                 <Card>
                   <CardHeader className="py-4">
                     <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
@@ -173,24 +180,6 @@ export default async function ProfilePage() {
                   <CardContent className="py-2">
                     <div className="text-2xl font-bold">{userStats.totalPoints}</div>
                     <p className="text-xs text-muted-foreground">Points earned</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-sm font-medium">Rank</CardTitle>
-                  </CardHeader>
-                  <CardContent className="py-2">
-                    <div className="text-2xl font-bold">
-                      {userRank === 1 ? (
-                        <span className="text-amber-500">#{userStats.rank}</span>
-                      ) : (
-                        <span>#{userStats.rank}</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Among {friendIds.length} {friendIds.length === 1 ? "person" : "people"}
-                    </p>
                   </CardContent>
                 </Card>
               </div>
