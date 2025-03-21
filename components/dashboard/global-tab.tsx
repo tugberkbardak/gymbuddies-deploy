@@ -1,41 +1,98 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Calendar, ExternalLink, Building2, Loader2, AlertCircle } from "lucide-react"
-import { getGlobalAttendance } from "@/actions/attendance-actions"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { format } from "date-fns"
 import Link from "next/link"
-import { useToast } from "@/hooks/use-toast"
+import { Loader2, MapPin, Calendar, Building2, ExternalLink } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import Image from "next/image"
 
 export function GlobalTab() {
-  const { toast } = useToast()
-  const [globalAttendanceData, setGlobalAttendanceData] = useState([])
+  const [attendances, setAttendances] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const observer = useRef(null)
+  const lastAttendanceRef = useRef(null)
 
-  useEffect(() => {
-    const fetchGlobalAttendances = async () => {
-      setIsLoading(true)
+  const fetchAttendances = async (pageNum = 1, append = false) => {
+    try {
+      const loadingState = append ? setIsLoadingMore : setIsLoading
+      loadingState(true)
       setError(null)
-      try {
-        const result = await getGlobalAttendance(10, 1)
-        setGlobalAttendanceData(result.attendances || [])
-      } catch (err) {
-        console.error("Error fetching global attendance:", err)
-        setError("Failed to load global attendance data. Please refresh the page.")
-      } finally {
-        setIsLoading(false)
-      }
-    }
 
-    fetchGlobalAttendances()
+      const response = await fetch(`/api/attendance/global?page=${pageNum}&limit=2`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch attendances: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        if (append) {
+          setAttendances((prev) => [...prev, ...data.data])
+        } else {
+          setAttendances(data.data)
+        }
+        setHasMore(data.pagination.hasMore)
+      } else {
+        throw new Error(data.error || "Failed to fetch attendances")
+      }
+    } catch (err) {
+      console.error("Error fetching attendances:", err)
+      setError(err.message || "Failed to fetch attendances")
+    } finally {
+      setIsLoading(false)
+      setIsLoadingMore(false)
+    }
+  }
+
+  // Initial load
+  useEffect(() => {
+    fetchAttendances()
   }, [])
 
-  const getMapLink = (coordinates: { lat: number; lng: number }) => {
-    return `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`
+  // Setup intersection observer for infinite scrolling
+  const lastAttendanceCallback = useCallback(
+    (node) => {
+      if (isLoadingMore) return
+
+      if (observer.current) {
+        observer.current.disconnect()
+      }
+
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          loadMoreAttendances()
+        }
+      })
+
+      if (node) {
+        observer.current.observe(node)
+        lastAttendanceRef.current = node
+      }
+    },
+    [isLoadingMore, hasMore],
+  )
+
+  const loadMoreAttendances = () => {
+    if (!isLoadingMore && hasMore) {
+      const nextPage = page + 1
+      setPage(nextPage)
+      fetchAttendances(nextPage, true)
+    }
+  }
+
+  const getMapLink = (coordinates) => {
+    if (coordinates) {
+      return `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`
+    }
+    return "#"
   }
 
   if (isLoading) {
@@ -49,108 +106,145 @@ export function GlobalTab() {
   if (error) {
     return (
       <div className="text-center py-8">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
-
-  if (globalAttendanceData.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">
-          No global attendance records found yet. Be the first to record a gym visit!
-        </p>
+        <p className="text-red-500 mb-4">{error}</p>
+        <Button onClick={() => fetchAttendances()}>Try Again</Button>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-        <h2 className="text-2xl font-bold tracking-tight">Global Activity</h2>
-        <Badge variant="outline">Live Updates</Badge>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Global Activity</h2>
+        <Button variant="outline" size="sm">
+          Live Updates
+        </Button>
       </div>
 
       <p className="text-muted-foreground">
         See gym attendance from GymBuddies users around the world. Get inspired by the global community!
       </p>
 
-      <div className="space-y-4">
-        {globalAttendanceData.map((item) => (
-          <Card key={item.id || item._id}>
-            <CardHeader className="pb-2">
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={item.user?.profileImage} alt={item.user?.username} />
-                    <AvatarFallback>{item.user?.username?.charAt(0) || "U"}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    {item.user?.username ? (
-                      <Link href={`/profile/username/${item.user.username}`} className="hover:underline">
-                        <CardTitle className="text-base">
-                          {item.user?.firstName || ""} {item.user?.lastName || ""}
-                          {!item.user?.firstName && !item.user?.lastName && item.user?.username}
-                        </CardTitle>
-                      </Link>
-                    ) : (
-                      <CardTitle className="text-base">
-                        {item.user?.firstName || ""} {item.user?.lastName || ""}
-                        {!item.user?.firstName && !item.user?.lastName && "User"}
-                      </CardTitle>
+      {attendances.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No attendance records found.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {attendances.map((attendance, index) => {
+            const isLastItem = index === attendances.length - 1
+            const formattedDate = format(new Date(attendance.date), "dd.MM.yyyy HH:mm:ss")
+
+            return (
+              <div
+                key={attendance._id}
+                ref={isLastItem ? lastAttendanceCallback : null}
+                className="bg-card rounded-lg p-4 border"
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  <Link href={`/profile/username/${attendance.user?.username || ""}`} className="shrink-0">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={attendance.user?.profileImage} alt={attendance.user?.username} />
+                      <AvatarFallback>
+                        {attendance.user?.firstName?.charAt(0) || ""}
+                        {attendance.user?.lastName?.charAt(0) || ""}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Link>
+                  <div className="flex-1">
+                    <Link
+                      href={`/profile/username/${attendance.user?.username || ""}`}
+                      className="font-medium hover:underline"
+                    >
+                      {attendance.user?.firstName} {attendance.user?.lastName}
+                    </Link>
+                    <p className="text-sm text-muted-foreground">@{attendance.user?.username}</p>
+                  </div>
+                  <Badge variant="outline" className="md:hidden">
+                    {attendance.points || 1} Point
+                  </Badge>
+                </div>
+
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span>{formattedDate}</span>
+                    </div>
+
+                    {attendance.gymName && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span>{attendance.gymName}</span>
+                      </div>
                     )}
-                    <CardDescription>@{item.user?.username || "user"}</CardDescription>
+
+                    {attendance.location && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="break-words">{attendance.location}</span>
+                        <a
+                          href={getMapLink(attendance.coordinates)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-primary"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          <span className="sr-only">View on map</span>
+                        </a>
+                      </div>
+                    )}
+
+                    {attendance.notes && <p className="text-sm mt-2">{attendance.notes}</p>}
+
+                    {/* Mobile view for image */}
+                    {attendance.image && (
+                      <div className="mt-2 rounded-md overflow-hidden w-full md:hidden">
+                        <Image
+                          src={attendance.image || "/placeholder.svg"}
+                          alt="Gym attendance"
+                          width={800}
+                          height={450}
+                          className="w-full h-auto object-cover max-h-[300px]"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Desktop view for image and badge */}
+                  <div className="hidden md:flex md:flex-col md:items-end md:gap-4 md:ml-4 md:min-w-[200px]">
+                    <Badge variant="outline">{attendance.points || 1} Point</Badge>
+
+                    {attendance.image && (
+                      <div className="rounded-md overflow-hidden w-full max-w-[200px]">
+                        <Image
+                          src={attendance.image || "/placeholder.svg"}
+                          alt="Gym attendance"
+                          width={200}
+                          height={150}
+                          className="w-full h-auto object-cover"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
-                <Badge variant="secondary" className="self-start">
-                  {item.points} {item.points === 1 ? "Point" : "Points"}
-                </Badge>
               </div>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <div className="space-y-1 mb-2">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{new Date(item.date).toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{item.gymName}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm flex items-center flex-wrap">
-                      <span className="mr-1">{item.location}</span>
-                      <a
-                        href={getMapLink(item.coordinates)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center text-primary"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        <span className="sr-only">View on map</span>
-                      </a>
-                    </span>
-                  </div>
-                </div>
-                <p className="text-sm">{item.notes}</p>
-              </div>
-              <div className="relative aspect-video overflow-hidden rounded-md">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.image || "/placeholder.svg?height=200&width=400"}
-                  alt={`Gym visit at ${item.gymName}`}
-                  className="object-cover w-full h-full"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            )
+          })}
+
+          {isLoadingMore && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
+
+          {!hasMore && attendances.length > 0 && (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground">You've reached the end!</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

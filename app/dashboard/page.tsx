@@ -6,7 +6,7 @@ import User from "@/models/User"
 import { getPendingFriendRequestsCount } from "@/actions/friend-actions"
 import { DashboardTabs } from "@/components/dashboard/dashboard-tabs"
 
-export default async function DashboardPage({ searchParams }) {
+export default async function DashboardPage({ searchParams }: { searchParams: { tab?: string } }) {
   // Get auth info
   const { userId } = auth()
 

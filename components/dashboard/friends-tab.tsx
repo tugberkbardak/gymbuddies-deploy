@@ -1,354 +1,261 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Check, X, Clock, AlertCircle } from "lucide-react"
-import { AddFriendDialog } from "@/components/dashboard/add-friend-dialog"
-import { useToast } from "@/hooks/use-toast"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { format } from "date-fns"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { Loader2, MapPin, Calendar, Building2, UserPlus, ExternalLink } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { AddFriendDialog } from "@/components/dashboard/add-friend-dialog"
+import { YourBuddies } from "@/components/dashboard/your-buddies"
+import { FriendRequests } from "@/components/dashboard/friend-requests"
+import Image from "next/image"
 
 export function FriendsTab() {
-  const { toast } = useToast()
-  const router = useRouter()
-  const [friends, setFriends] = useState([])
-  const [incomingRequests, setIncomingRequests] = useState([])
-  const [outgoingRequests, setOutgoingRequests] = useState([])
+  const [attendances, setAttendances] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [isAddFriendOpen, setIsAddFriendOpen] = useState(false)
+  const observer = useRef(null)
+  const lastAttendanceRef = useRef(null)
 
-  const loadData = async () => {
-    setIsLoading(true)
-    setError(null)
-
+  const fetchAttendances = async (pageNum = 1, append = false) => {
     try {
-      // Fetch friends data
-      const friendsResponse = await fetch("/api/friends")
-      const incomingResponse = await fetch("/api/friends/requests")
-      const outgoingResponse = await fetch("/api/friends/outgoing")
+      const loadingState = append ? setIsLoadingMore : setIsLoading
+      loadingState(true)
+      setError(null)
 
-      // Check for response errors
-      if (!friendsResponse.ok) {
-        throw new Error(`Friends API error: ${friendsResponse.status}`)
-      }
-      if (!incomingResponse.ok) {
-        throw new Error(`Incoming requests API error: ${incomingResponse.status}`)
-      }
-      if (!outgoingResponse.ok) {
-        throw new Error(`Outgoing requests API error: ${outgoingResponse.status}`)
+      const response = await fetch(`/api/attendance/friends?page=${pageNum}&limit=2`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch attendances: ${response.statusText}`)
       }
 
-      // Parse JSON responses with error handling
-      let friendsData, incomingData, outgoingData
+      const data = await response.json()
 
-      try {
-        friendsData = await friendsResponse.json()
-      } catch (e) {
-        console.error("Error parsing friends response:", e)
-        friendsData = []
+      if (data.success) {
+        if (append) {
+          setAttendances((prev) => [...prev, ...data.data])
+        } else {
+          setAttendances(data.data)
+        }
+        setHasMore(data.pagination.hasMore)
+      } else {
+        throw new Error(data.error || "Failed to fetch attendances")
       }
-
-      try {
-        incomingData = await incomingResponse.json()
-      } catch (e) {
-        console.error("Error parsing incoming requests response:", e)
-        incomingData = []
-      }
-
-      try {
-        outgoingData = await outgoingResponse.json()
-      } catch (e) {
-        console.error("Error parsing outgoing requests response:", e)
-        outgoingData = []
-      }
-
-      setFriends(Array.isArray(friendsData) ? friendsData : [])
-      setIncomingRequests(Array.isArray(incomingData) ? incomingData : [])
-      setOutgoingRequests(Array.isArray(outgoingData) ? outgoingData : [])
-    } catch (error) {
-      console.error("Error loading friends data:", error)
-      setError(error.message || "Failed to load friends data")
-      toast({
-        title: "Error",
-        description: "Failed to load friends data. Please try again.",
-        variant: "destructive",
-      })
+    } catch (err) {
+      console.error("Error fetching attendances:", err)
+      setError(err.message || "Failed to fetch attendances")
     } finally {
       setIsLoading(false)
+      setIsLoadingMore(false)
     }
   }
 
+  // Initial load
   useEffect(() => {
-    loadData()
+    fetchAttendances()
   }, [])
 
-  const handleAcceptRequest = async (requestId) => {
-    try {
-      const response = await fetch(`/api/friends/requests/${requestId}/accept`, {
-        method: "POST",
-      })
+  // Setup intersection observer for infinite scrolling
+  const lastAttendanceCallback = useCallback(
+    (node) => {
+      if (isLoadingMore) return
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Failed to accept friend request" }))
-        throw new Error(errorData.message || "Failed to accept friend request")
+      if (observer.current) {
+        observer.current.disconnect()
       }
 
-      const result = await response.json().catch(() => ({ success: false }))
-
-      if (result.success) {
-        toast({
-          title: "Friend request accepted",
-          description: "You are now friends!",
-        })
-        loadData() // Refresh data
-        router.refresh() // Refresh the page to update the notification badge
-      } else {
-        throw new Error(result.message || "Failed to accept friend request")
-      }
-    } catch (error) {
-      console.error("Error accepting friend request:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to accept friend request",
-        variant: "destructive",
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          loadMoreAttendances()
+        }
       })
+
+      if (node) {
+        observer.current.observe(node)
+        lastAttendanceRef.current = node
+      }
+    },
+    [isLoadingMore, hasMore],
+  )
+
+  const loadMoreAttendances = () => {
+    if (!isLoadingMore && hasMore) {
+      const nextPage = page + 1
+      setPage(nextPage)
+      fetchAttendances(nextPage, true)
     }
   }
 
-  const handleRejectRequest = async (requestId) => {
-    try {
-      const response = await fetch(`/api/friends/requests/${requestId}/reject`, {
-        method: "POST",
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Failed to decline friend request" }))
-        throw new Error(errorData.message || "Failed to decline friend request")
-      }
-
-      const result = await response.json().catch(() => ({ success: false }))
-
-      if (result.success) {
-        toast({
-          title: "Friend request declined",
-        })
-        loadData() // Refresh data
-        router.refresh() // Refresh the page to update the notification badge
-      } else {
-        throw new Error(result.message || "Failed to decline friend request")
-      }
-    } catch (error) {
-      console.error("Error rejecting friend request:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to decline friend request",
-        variant: "destructive",
-      })
+  const getMapLink = (coordinates) => {
+    if (coordinates) {
+      return `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`
     }
+    return "#"
+  }
+
+  const handleFriendRequestHandled = () => {
+    // Refresh the attendances when a friend request is handled
+    fetchAttendances()
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-bold tracking-tight">Friends</h2>
-        <AddFriendDialog onFriendRequestSent={loadData} />
-      </div>
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      {/* Your Buddies Section */}
+      <YourBuddies />
 
       {/* Friend Requests Section */}
-      {incomingRequests.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-medium">Friend Requests</h3>
-            <Badge variant="secondary" className="rounded-full px-2">
-              {incomingRequests.length}
-            </Badge>
-          </div>
-          <div className="space-y-3">
-            {incomingRequests.map((request) => (
-              <Card key={request._id}>
-                <CardHeader className="pb-2">
-                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={request.user?.profileImage} alt={request.user?.username} />
-                        <AvatarFallback>{request.user?.username?.charAt(0) || "U"}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        {request.user?.username ? (
-                          <Link href={`/profile/username/${request.user.username}`} className="hover:underline">
-                            <CardTitle className="text-base">
-                              {request.user?.firstName || ""} {request.user?.lastName || ""}
-                              {!request.user?.firstName && !request.user?.lastName && request.user?.username}
-                            </CardTitle>
-                          </Link>
-                        ) : (
-                          <CardTitle className="text-base">
-                            {request.user?.firstName || ""} {request.user?.lastName || ""}
-                            {!request.user?.firstName && !request.user?.lastName && "User"}
-                          </CardTitle>
-                        )}
-                        <CardDescription>@{request.user?.username || "user"}</CardDescription>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button size="sm" onClick={() => handleAcceptRequest(request._id)}>
-                        <Check className="h-4 w-4 mr-1" />
-                        Accept
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleRejectRequest(request._id)}>
-                        <X className="h-4 w-4 mr-1" />
-                        Decline
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
+      <FriendRequests onRequestHandled={handleFriendRequestHandled} />
 
-      {/* Outgoing Friend Requests Section */}
-      {outgoingRequests.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Sent Requests</h3>
-          <div className="space-y-3">
-            {outgoingRequests.map((request) => (
-              <Card key={request._id}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={request.friend?.profileImage} alt={request.friend?.username} />
-                        <AvatarFallback>{request.friend?.username?.charAt(0) || "U"}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        {request.friend?.username ? (
-                          <Link href={`/profile/username/${request.friend.username}`} className="hover:underline">
-                            <CardTitle className="text-base">
-                              {request.friend?.firstName || ""} {request.friend?.lastName || ""}
-                              {!request.friend?.firstName && !request.friend?.lastName && request.friend?.username}
-                            </CardTitle>
-                          </Link>
-                        ) : (
-                          <CardTitle className="text-base">
-                            {request.friend?.firstName || ""} {request.friend?.lastName || ""}
-                            {!request.friend?.firstName && !request.friend?.lastName && "User"}
-                          </CardTitle>
-                        )}
-                        <CardDescription>@{request.friend?.username || "user"}</CardDescription>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      <Clock className="h-3 w-3 mr-1" />
-                      Pending
-                    </Badge>
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Friends List */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Your Friends</h3>
-        {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-muted"></div>
-                      <div>
-                        <div className="h-4 w-24 bg-muted rounded"></div>
-                        <div className="h-3 w-16 bg-muted rounded mt-2"></div>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-4 w-full bg-muted rounded"></div>
-                  <div className="h-20 w-full bg-muted rounded mt-4"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : friends.length > 0 ? (
-          <div className="space-y-3">
-            {friends.map((friendship) => {
-              return (
-                <Card key={friendship.friendship?._id || Math.random()}>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={friendship.friend?.profileImage} alt={friendship.friend?.username} />
-                          <AvatarFallback>{friendship.friend?.username?.charAt(0) || "U"}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          {friendship.friend?.username ? (
-                            <Link href={`/profile/username/${friendship.friend.username}`} className="hover:underline">
-                              <CardTitle className="text-base">
-                                {friendship.friend?.firstName || ""} {friendship.friend?.lastName || ""}
-                                {!friendship.friend?.firstName &&
-                                  !friendship.friend?.lastName &&
-                                  friendship.friend?.username}
-                              </CardTitle>
-                            </Link>
-                          ) : (
-                            <CardTitle className="text-base">
-                              {friendship.friend?.firstName || ""} {friendship.friend?.lastName || ""}
-                              {!friendship.friend?.firstName && !friendship.friend?.lastName && "User"}
-                            </CardTitle>
-                          )}
-                          <CardDescription>@{friendship.friend?.username || "user"}</CardDescription>
-                        </div>
-                      </div>
-                      <Badge variant={friendship.friend?.currentStreak > 0 ? "default" : "outline"}>
-                        {friendship.friend?.currentStreak > 0
-                          ? `${friendship.friend.currentStreak} day streak`
-                          : "No streak"}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-sm">
-                      <p className="text-muted-foreground mb-2">
-                        Last active:{" "}
-                        {friendship.friend?.lastActive
-                          ? new Date(friendship.friend.lastActive).toLocaleDateString()
-                          : "Unknown"}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center p-6">
-              <p className="text-muted-foreground mb-4">You don't have any friends yet.</p>
-              <AddFriendDialog onFriendRequestSent={loadData} />
-            </CardContent>
-          </Card>
-        )}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Friends Activity</h2>
+        <Button size="sm" onClick={() => setIsAddFriendOpen(true)}>
+          <UserPlus className="h-4 w-4 mr-2" />
+          Add Friend
+        </Button>
       </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : error ? (
+        <div className="text-center py-8">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={() => fetchAttendances()}>Try Again</Button>
+        </div>
+      ) : attendances.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground mb-4">No activity from friends yet.</p>
+          <Button onClick={() => setIsAddFriendOpen(true)}>Add Friends</Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {attendances.map((attendance, index) => {
+            const isLastItem = index === attendances.length - 1
+            const formattedDate = format(new Date(attendance.date), "dd.MM.yyyy HH:mm:ss")
+
+            return (
+              <div
+                key={attendance._id}
+                ref={isLastItem ? lastAttendanceCallback : null}
+                className="bg-card rounded-lg p-4 border"
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  <Link href={`/profile/username/${attendance.user?.username || ""}`} className="shrink-0">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={attendance.user?.profileImage} alt={attendance.user?.username} />
+                      <AvatarFallback>
+                        {attendance.user?.firstName?.charAt(0) || ""}
+                        {attendance.user?.lastName?.charAt(0) || ""}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Link>
+                  <div className="flex-1">
+                    <Link
+                      href={`/profile/username/${attendance.user?.username || ""}`}
+                      className="font-medium hover:underline"
+                    >
+                      {attendance.user?.firstName} {attendance.user?.lastName}
+                    </Link>
+                    <p className="text-sm text-muted-foreground">@{attendance.user?.username}</p>
+                  </div>
+                  <Badge variant="outline" className="md:hidden">
+                    {attendance.points || 1} Point
+                  </Badge>
+                </div>
+
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span>{formattedDate}</span>
+                    </div>
+
+                    {attendance.gymName && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span>{attendance.gymName}</span>
+                      </div>
+                    )}
+
+                    {attendance.location && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="break-words">{attendance.location}</span>
+                        <a
+                          href={getMapLink(attendance.coordinates)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-primary"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          <span className="sr-only">View on map</span>
+                        </a>
+                      </div>
+                    )}
+
+                    {attendance.notes && <p className="text-sm mt-2">{attendance.notes}</p>}
+
+                    {/* Mobile view for image */}
+                    {attendance.image && (
+                      <div className="mt-2 rounded-md overflow-hidden w-full md:hidden">
+                        <Image
+                          src={attendance.image || "/placeholder.svg"}
+                          alt="Gym attendance"
+                          width={800}
+                          height={450}
+                          className="w-full h-auto object-cover max-h-[300px]"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Desktop view for image and badge */}
+                  <div className="hidden md:flex md:flex-col md:items-end md:gap-4 md:ml-4 md:min-w-[200px]">
+                    <Badge variant="outline">{attendance.points || 1} Point</Badge>
+
+                    {attendance.image && (
+                      <div className="rounded-md overflow-hidden w-full max-w-[200px]">
+                        <Image
+                          src={attendance.image || "/placeholder.svg"}
+                          alt="Gym attendance"
+                          width={200}
+                          height={150}
+                          className="w-full h-auto object-cover"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+
+          {isLoadingMore && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
+
+          {!hasMore && attendances.length > 0 && (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground">You've reached the end!</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <AddFriendDialog
+        open={isAddFriendOpen}
+        onOpenChange={setIsAddFriendOpen}
+        onFriendRequestSent={() => fetchAttendances()}
+      />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -19,15 +19,36 @@ import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useRouter } from "next/navigation"
 
-export function AddFriendDialog({ onFriendRequestSent }) {
+interface AddFriendDialogProps {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  onFriendRequestSent?: () => void
+}
+
+export function AddFriendDialog({ open, onOpenChange, onFriendRequestSent }: AddFriendDialogProps) {
   const { toast } = useToast()
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
   const [pendingRequests, setPendingRequests] = useState({})
   const [error, setError] = useState(null)
+
+  // Sync internal state with external props
+  useEffect(() => {
+    if (open !== undefined) {
+      setDialogOpen(open)
+    }
+  }, [open])
+
+  // Handle dialog state changes
+  const handleOpenChange = (newOpen: boolean) => {
+    setDialogOpen(newOpen)
+    if (onOpenChange) {
+      onOpenChange(newOpen)
+    }
+  }
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
@@ -134,13 +155,15 @@ export function AddFriendDialog({ onFriendRequestSent }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Add Friend
-        </Button>
-      </DialogTrigger>
+    <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
+      {!open && (
+        <DialogTrigger asChild>
+          <Button>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Friend
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add Friend</DialogTitle>
@@ -234,7 +257,7 @@ export function AddFriendDialog({ onFriendRequestSent }) {
         </div>
 
         <DialogFooter className="sm:justify-start">
-          <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+          <Button type="button" variant="secondary" onClick={() => handleOpenChange(false)}>
             Close
           </Button>
         </DialogFooter>
