@@ -178,25 +178,38 @@ export function FriendsTab() {
                     </div>
 
                     {attendance.gymName && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span>{attendance.gymName}</span>
-                      </div>
-                    )}
-
-                    {attendance.location && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="break-words">{attendance.location}</span>
-                        <a
-                          href={getMapLink(attendance.coordinates)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-primary"
+                      <div className="flex flex-col gap-1 text-sm">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            const locationElement = document.getElementById(`friend-location-${attendance._id}`)
+                            if (locationElement) {
+                              locationElement.classList.toggle("hidden")
+                            }
+                          }}
+                          className="flex items-center gap-2 hover:text-primary transition-colors text-left"
                         >
-                          <ExternalLink className="h-3 w-3" />
-                          <span className="sr-only">View on map</span>
-                        </a>
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <span>{attendance.gymName}</span>
+                        </button>
+
+                        {attendance.location && (
+                          <div id={`friend-location-${attendance._id}`} className="hidden pl-6">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <MapPin className="h-4 w-4" />
+                              <span className="break-words">{attendance.location}</span>
+                              <a
+                                href={getMapLink(attendance.coordinates)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-primary"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                <span className="sr-only">View on map</span>
+                              </a>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
