@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useAttendanceRefresh } from "@/hooks/use-attendance-refresh"
+import { WeeklyStreakProgress } from "@/components/dashboard/weekly-streak-progress"
 
 export function AttendanceTab() {
   const { user } = useUser()
@@ -271,6 +272,9 @@ export function AttendanceTab() {
           Record Attendance
         </Button>
       </div>
+
+      {/* Add Weekly Streak Progress component */}
+      <WeeklyStreakProgress />
 
       {showForm && (
         <Card>

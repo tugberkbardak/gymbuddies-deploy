@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import Link from "next/link"
-import { Loader2, MapPin, Calendar, Building2, UserPlus, ExternalLink } from "lucide-react"
+import { Loader2, MapPin, Calendar, Building2, UserPlus, ExternalLink, Trophy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AddFriendDialog } from "@/components/dashboard/add-friend-dialog"
 import { YourBuddies } from "@/components/dashboard/your-buddies"
@@ -168,6 +168,12 @@ export function FriendsTab() {
                   <Badge variant="outline" className="md:hidden">
                     {attendance.points || 1} Point
                   </Badge>
+                  {attendance.currentStreak > 0 && (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <Trophy className="h-3 w-3" />
+                      {attendance.currentStreak} {attendance.currentStreak === 1 ? "day" : "days"} streak
+                    </Badge>
+                  )}
                 </div>
 
                 <div className="flex justify-between items-start">

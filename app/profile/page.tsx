@@ -135,10 +135,12 @@ export default async function ProfilePage() {
                     <Calendar className="h-3 w-3" />
                     Joined {userStats.joinedDate}
                   </Badge>
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    <Trophy className="h-3 w-3" />
-                    {userStats.currentStreak} day streak
-                  </Badge>
+                  {userStats.currentStreak > 0 && (
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      <Trophy className="h-3 w-3" />
+                      {userStats.currentStreak} {userStats.currentStreak === 1 ? "day" : "days"} streak
+                    </Badge>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -153,7 +155,7 @@ export default async function ProfilePage() {
                   </CardHeader>
                   <CardContent className="py-2">
                     <div className="text-2xl font-bold">{userStats.totalAttendance}</div>
-                    <p className="text-xs text-muted-foreground">Gym visits</p>
+                    <p className="text-xs text-muted-foreground">Total days at gym</p>
                   </CardContent>
                 </Card>
 
@@ -169,7 +171,8 @@ export default async function ProfilePage() {
                   </CardHeader>
                   <CardContent className="py-2">
                     <div className="text-2xl font-bold">{userStats.currentStreak}</div>
-                    <p className="text-xs text-muted-foreground">Days in a row</p>
+                    <p className="text-xs text-muted-foreground">{userStats.currentStreak === 1 ? "Day" : "Days"}</p>
+                    <p className="text-xs text-muted-foreground mt-1">(3+ gym visits per week required)</p>
                   </CardContent>
                 </Card>
 

@@ -4,6 +4,7 @@ import dbConnect from "@/lib/mongodb"
 import Attendance from "@/models/Attendance"
 import User from "@/models/User"
 import { serializeMongooseObject } from "@/lib/utils-server"
+import { startOfWeek, endOfWeek, subWeeks } from "date-fns"
 
 export async function POST(req: NextRequest) {
   try {
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
       // Update user stats
       dbUser.totalAttendance = 1
       dbUser.totalPoints = 1
-      dbUser.currentStreak = 1
+      dbUser.currentStreak = 0 // Initialize streak at 0
       dbUser.lastActive = new Date()
       await dbUser.save()
 
@@ -120,36 +121,46 @@ export async function POST(req: NextRequest) {
     dbUser.totalPoints = (dbUser.totalPoints || 0) + 1
     dbUser.lastActive = new Date()
 
-    // Update streak logic
-    const yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-    yesterday.setHours(0, 0, 0, 0)
+    // NEW STREAK LOGIC: Count a streak as going to the gym at least 3 times in a week
+    const today = new Date()
+    const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 }) // Week starts on Monday
+    const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 })
 
-    const twoDaysAgo = new Date()
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
-    twoDaysAgo.setHours(0, 0, 0, 0)
-
-    // Check if user had attendance yesterday or today already
-    const recentAttendance = await Attendance.findOne({
+    // Count attendances for the current week
+    const currentWeekAttendances = await Attendance.countDocuments({
       user: dbUser._id,
-      date: { $gte: yesterday },
-    }).sort({ date: -1 })
+      date: { $gte: currentWeekStart, $lte: currentWeekEnd },
+    })
 
-    if (recentAttendance) {
-      // User already has attendance for today or yesterday, increment streak
-      dbUser.currentStreak = (dbUser.currentStreak || 0) + 1
-    } else {
-      // Check if user had attendance two days ago
-      const olderAttendance = await Attendance.findOne({
-        user: dbUser._id,
-        date: { $gte: twoDaysAgo, $lt: yesterday },
-      })
+    // Check if the user has at least 3 attendances this week
+    const hasThreeAttendancesThisWeek = currentWeekAttendances >= 3
 
-      if (!olderAttendance) {
-        // No recent attendance, reset streak
+    // Check if the user had a streak last week
+    const lastWeekStart = subWeeks(currentWeekStart, 1)
+    const lastWeekEnd = subWeeks(currentWeekEnd, 1)
+
+    const lastWeekAttendances = await Attendance.countDocuments({
+      user: dbUser._id,
+      date: { $gte: lastWeekStart, $lte: lastWeekEnd },
+    })
+
+    const hadStreakLastWeek = lastWeekAttendances >= 3
+
+    // Update the streak
+    if (hasThreeAttendancesThisWeek) {
+      if (hadStreakLastWeek) {
+        // Continue the streak
+        dbUser.currentStreak = (dbUser.currentStreak || 0) + 1
+      } else {
+        // Start a new streak
         dbUser.currentStreak = 1
       }
+    } else if (!hadStreakLastWeek) {
+      // Reset streak if no streak last week and not yet 3 times this week
+      dbUser.currentStreak = 0
     }
+    // If we don't have 3 attendances this week but had a streak last week,
+    // we keep the current streak value as is until the week ends
 
     await dbUser.save()
 

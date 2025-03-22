@@ -190,7 +190,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   {userStats.currentStreak > 0 && (
                     <Badge variant="secondary" className="flex items-center gap-1">
                       <Trophy className="h-3 w-3" />
-                      {userStats.currentStreak} day streak
+                      {userStats.currentStreak} {userStats.currentStreak === 1 ? "day" : "days"} streak
                     </Badge>
                   )}
                 </div>
@@ -211,7 +211,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </CardHeader>
                   <CardContent className="py-2">
                     <div className="text-2xl font-bold">{userStats.totalAttendance}</div>
-                    <p className="text-xs text-muted-foreground">Gym visits</p>
+                    <p className="text-xs text-muted-foreground">Total days at gym</p>
                   </CardContent>
                 </Card>
 
@@ -228,6 +228,17 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   <CardContent className="py-2">
                     <div className="text-2xl font-bold">{userStats.totalPoints}</div>
                     <p className="text-xs text-muted-foreground">Points earned</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="py-4">
+                    <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
+                  </CardHeader>
+                  <CardContent className="py-2">
+                    <div className="text-2xl font-bold">{userStats.currentStreak}</div>
+                    <p className="text-xs text-muted-foreground">{userStats.currentStreak === 1 ? "Day" : "Days"}</p>
+                    <p className="text-xs text-muted-foreground mt-1">(3+ gym visits per week required)</p>
                   </CardContent>
                 </Card>
               </div>
