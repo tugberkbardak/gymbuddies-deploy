@@ -27,6 +27,9 @@ export async function syncUserWithDatabase() {
       existingUser.profileImage = clerkUser.imageUrl
       existingUser.lastActive = new Date()
 
+      // Add this line to sync the defaultGym
+      existingUser.defaultGym = (clerkUser.unsafeMetadata as any)?.defaultGym || existingUser.defaultGym || ""
+
       await existingUser.save()
       return serializeMongooseObject(existingUser)
     } else {
@@ -38,6 +41,7 @@ export async function syncUserWithDatabase() {
         lastName: clerkUser.lastName || "",
         email: clerkUser.emailAddresses[0].emailAddress,
         profileImage: clerkUser.imageUrl,
+        defaultGym: (clerkUser.unsafeMetadata as any)?.defaultGym || "",
         joinedDate: new Date(),
         lastActive: new Date(),
       })

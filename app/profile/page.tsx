@@ -14,6 +14,7 @@ import User from "@/models/User"
 import Friendship from "@/models/Friendship"
 import { ShareProfileButton } from "@/components/profile/share-profile-button"
 import { BuddiesCard } from "@/components/profile/buddies-card"
+import { ProfileInfoDisplay } from "@/components/profile/profile-info-display"
 
 export default async function ProfilePage() {
   // Use currentUser instead of auth for more reliable authentication
@@ -49,6 +50,10 @@ export default async function ProfilePage() {
     // Redirect to dashboard to ensure everything is properly loaded
     redirect("/dashboard")
   }
+
+  // Get bio and defaultGym from both sources to ensure we have the data
+  const bio = dbUser.bio || (user.unsafeMetadata as any)?.bio || null
+  const defaultGym = dbUser.defaultGym || (user.unsafeMetadata as any)?.defaultGym || null
 
   // Calculate real rank among friends
   // 1. Get all friends
@@ -138,13 +143,8 @@ export default async function ProfilePage() {
               </div>
             </CardHeader>
             <CardContent>
-              {/* Add bio section here */}
-              {dbUser.bio && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium mb-2">Bio</h3>
-                  <p className="text-sm text-muted-foreground">{dbUser.bio}</p>
-                </div>
-              )}
+              {/* Profile Info Display Component */}
+              <ProfileInfoDisplay bio={bio} defaultGym={defaultGym} userId={user.id} />
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
                 <Card>
@@ -185,12 +185,7 @@ export default async function ProfilePage() {
               </div>
             </CardContent>
             <CardFooter>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" asChild>
-                  <Link href="/profile/edit">Edit Profile</Link>
-                </Button>
-                <ShareProfileButton username={dbUser.username} />
-              </div>
+              <ShareProfileButton username={dbUser.username} />
             </CardFooter>
           </Card>
 

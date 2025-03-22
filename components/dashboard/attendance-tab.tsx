@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
+import { useUser } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -16,6 +17,7 @@ import { useRouter } from "next/navigation"
 import { useAttendanceRefresh } from "@/hooks/use-attendance-refresh"
 
 export function AttendanceTab() {
+  const { user } = useUser()
   const { toast } = useToast()
   const router = useRouter()
   const [showForm, setShowForm] = useState(false)
@@ -39,6 +41,16 @@ export function AttendanceTab() {
   const streamRef = useRef<MediaStream | null>(null)
 
   const { attendanceListRef, refreshAttendanceList } = useAttendanceRefresh()
+
+  // Pre-fill gym name when form is shown
+  useEffect(() => {
+    if (showForm && user) {
+      const defaultGym = (user.unsafeMetadata as any)?.defaultGym
+      if (defaultGym) {
+        setGymName(defaultGym)
+      }
+    }
+  }, [showForm, user])
 
   // Start camera when showCamera is true
   useEffect(() => {
@@ -303,6 +315,19 @@ export function AttendanceTab() {
                       value={gymName}
                       onChange={(e) => setGymName(e.target.value)}
                     />
+                    {user &&
+                      (user.unsafeMetadata as any)?.defaultGym &&
+                      gymName !== (user.unsafeMetadata as any)?.defaultGym && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="mt-1 h-auto py-1 px-2 text-xs"
+                          onClick={() => setGymName((user.unsafeMetadata as any)?.defaultGym)}
+                        >
+                          Use my default gym
+                        </Button>
+                      )}
                   </div>
 
                   {/* Location Field */}

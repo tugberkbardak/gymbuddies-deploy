@@ -24,15 +24,27 @@ export default function EditProfilePage() {
     firstName: "",
     lastName: "",
     bio: "",
+    defaultGym: "",
   })
 
   // Initialize form data when user data is loaded
   useEffect(() => {
     if (isLoaded && user) {
+      // Get data from user metadata
+      const metadata = (user.unsafeMetadata as any) || {}
+
       setFormData({
         firstName: user.firstName || "",
         lastName: user.lastName || "",
-        bio: (user.unsafeMetadata as any)?.bio || "",
+        bio: metadata.bio || "",
+        defaultGym: metadata.defaultGym || "",
+      })
+
+      console.log("Loaded user data:", {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        bio: metadata.bio,
+        defaultGym: metadata.defaultGym,
       })
     } else if (isLoaded && !user) {
       // Redirect to sign-in if not authenticated
@@ -45,6 +57,7 @@ export default function EditProfilePage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Update the handleSubmit function to log the data being saved
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -57,15 +70,20 @@ export default function EditProfilePage() {
     setIsUpdating(true)
 
     try {
+      console.log("Updating profile with:", formData)
+
+      // Update user in Clerk
       await user.update({
         firstName: formData.firstName,
         lastName: formData.lastName,
         unsafeMetadata: {
           ...user.unsafeMetadata,
           bio: formData.bio,
+          defaultGym: formData.defaultGym,
         },
       })
 
+      // Force a refresh to ensure the data is updated
       router.push("/profile")
       router.refresh()
     } catch (error) {
@@ -135,6 +153,20 @@ export default function EditProfilePage() {
                   <Label htmlFor="lastName">Last Name</Label>
                   <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="defaultGym">Gym</Label>
+                <Input
+                  id="defaultGym"
+                  name="defaultGym"
+                  placeholder="Enter your regular gym name"
+                  value={formData.defaultGym}
+                  onChange={handleChange}
+                />
+                <p className="text-xs text-muted-foreground">
+                  This will be automatically filled when recording attendance
+                </p>
               </div>
 
               <div className="space-y-2">

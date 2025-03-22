@@ -14,6 +14,7 @@ export async function POST(req: Request) {
 
   // If there are no headers, error out
   if (!svix_id || !svix_timestamp || !svix_signature) {
+    console.error("Missing svix headers")
     return new Response("Error: Missing svix headers", {
       status: 400,
     })
@@ -44,13 +45,15 @@ export async function POST(req: Request) {
 
   // Get the event type
   const eventType = evt.type
+  console.log("Webhook event type:", eventType)
 
   // Connect to MongoDB
   await dbConnect()
 
   // Handle the event
   if (eventType === "user.created" || eventType === "user.updated") {
-    const { id, username, email_addresses, first_name, last_name, image_url } = evt.data
+    const { id, username, email_addresses, first_name, last_name, image_url, user_metadata } = evt.data
+    console.log("Webhook user data:", JSON.stringify({ id, username, email_addresses, first_name, last_name }, null, 2))
 
     try {
       // Validate required fields
@@ -78,12 +81,16 @@ export async function POST(req: Request) {
       const existingUser = await User.findOne({ clerkId: id })
 
       if (existingUser) {
+        console.log("Updating existing user:", existingUser._id)
         // Update existing user
         existingUser.firstName = first_name || ""
         existingUser.lastName = last_name || ""
         existingUser.email = email
         existingUser.profileImage = image_url || ""
         existingUser.lastActive = new Date()
+
+        // Add this line to update the defaultGym
+        existingUser.defaultGym = user_metadata?.defaultGym || existingUser.defaultGym || ""
 
         // Only update username if it's provided and different
         if (username && username !== existingUser.username) {
@@ -102,6 +109,14 @@ export async function POST(req: Request) {
         await existingUser.save()
         console.log("Updated user in MongoDB:", id)
       } else {
+        console.log("Creating new user with data:", {
+          clerkId: id,
+          username: baseUsername,
+          email,
+          firstName: first_name || "",
+          lastName: last_name || "",
+        })
+
         // For new users, ensure username is unique
         let uniqueUsername = baseUsername
         let counter = 0
@@ -120,6 +135,7 @@ export async function POST(req: Request) {
           lastName: last_name || "",
           email: email,
           profileImage: image_url || "",
+          defaultGym: user_metadata?.defaultGym || "",
           joinedDate: new Date(),
           lastActive: new Date(),
         })

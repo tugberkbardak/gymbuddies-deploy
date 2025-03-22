@@ -8,6 +8,7 @@ export interface IUser extends Document {
   email: string
   profileImage?: string
   bio?: string
+  defaultGym?: string
   currentStreak: number
   totalPoints: number
   totalAttendance: number
@@ -39,6 +40,7 @@ const UserSchema: Schema = new Schema(
     },
     profileImage: { type: String, default: "" },
     bio: { type: String, default: "" },
+    defaultGym: { type: String, default: "" },
     currentStreak: { type: Number, default: 0 },
     totalPoints: { type: Number, default: 0 },
     totalAttendance: { type: Number, default: 0 },
