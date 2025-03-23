@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { ClerkProvider } from "@clerk/nextjs"
 import { Inter } from "next/font/google"
 import "@/app/globals.css"
-import Script from "next/script" // <-- Import Script component
+import { Analytics } from "@vercel/analytics/react" // <-- Import Vercel Analytics
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -37,11 +37,7 @@ export default function RootLayout({
         </head>
         <body className={`${inter.className} bg-black text-white`}>
           {children}
-          {/* Vercel Analytics Script */}
-          <Script
-            src="https://vercel.live/_analytics/script.js"
-            strategy="lazyOnload"
-          />
+          <Analytics /> {/* Proper Analytics Integration */}
         </body>
       </html>
     </ClerkProvider>
