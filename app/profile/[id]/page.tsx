@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ChevronLeft, Calendar, Trophy } from "lucide-react"
+import { ChevronLeft, Calendar } from "lucide-react"
 import { redirect } from "next/navigation"
 import dbConnect from "@/lib/mongodb"
 import User from "@/models/User"
@@ -187,12 +187,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     <Calendar className="h-3 w-3" />
                     Joined {userStats.joinedDate}
                   </Badge>
-                  {userStats.currentStreak > 0 && (
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      <Trophy className="h-3 w-3" />
-                      {userStats.currentStreak} {userStats.currentStreak === 1 ? "day" : "days"} streak
-                    </Badge>
-                  )}
                 </div>
               </div>
             </CardHeader>

@@ -4,10 +4,10 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, Clock } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
+import { formatDistanceToNow } from "date-fns"
 
 export function FriendsDialog({ open, onOpenChange, userId, username }) {
   const [friends, setFriends] = useState([])
@@ -89,11 +89,14 @@ export function FriendsDialog({ open, onOpenChange, userId, username }) {
                       <p className="text-sm text-muted-foreground">@{friendship.friend?.username || "user"}</p>
                     </div>
                   </div>
-                  <Badge variant={friendship.friend?.currentStreak > 0 ? "default" : "outline"}>
-                    {friendship.friend?.currentStreak > 0
-                      ? `${friendship.friend.currentStreak} day streak`
-                      : "No streak"}
-                  </Badge>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {friendship.friend?.lastActive ? (
+                      <span>{formatDistanceToNow(new Date(friendship.friend.lastActive), { addSuffix: true })}</span>
+                    ) : (
+                      <span>Never active</span>
+                    )}
+                  </div>
                 </div>
               </Card>
             ))}

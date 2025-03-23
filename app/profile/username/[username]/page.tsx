@@ -13,7 +13,7 @@ import { getUserAttendanceHeatmap } from "@/actions/attendance-actions"
 import { FriendshipActions } from "@/components/profile/friendship-actions"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Trophy, UserPlus } from "lucide-react"
+import { Calendar, UserPlus } from "lucide-react"
 import {
   Card as CardUI,
   CardContent as CardContentUI,
@@ -202,12 +202,6 @@ export default async function ProfileByUsernamePage({ params }: { params: { user
                     <Calendar className="h-3 w-3" />
                     Joined {userStats.joinedDate}
                   </Badge>
-                  {userStats.currentStreak > 0 && (
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      <Trophy className="h-3 w-3" />
-                      {userStats.currentStreak} {userStats.currentStreak === 1 ? "day" : "days"} streak
-                    </Badge>
-                  )}
                 </div>
               </div>
             </CardHeader>
