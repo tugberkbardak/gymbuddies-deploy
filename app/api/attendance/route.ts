@@ -5,6 +5,8 @@ import Attendance from "@/models/Attendance"
 import User from "@/models/User"
 import { serializeMongooseObject } from "@/lib/utils-server"
 import { startOfWeek, endOfWeek, subWeeks } from "date-fns"
+// Import the streak calculator utility
+import { calculateStreak } from "@/utils/streak-calculator"
 
 export async function POST(req: NextRequest) {
   try {
@@ -146,21 +148,8 @@ export async function POST(req: NextRequest) {
 
     const hadStreakLastWeek = lastWeekAttendances >= 3
 
-    // Update the streak
-    if (hasThreeAttendancesThisWeek) {
-      if (hadStreakLastWeek) {
-        // Continue the streak
-        dbUser.currentStreak = (dbUser.currentStreak || 0) + 1
-      } else {
-        // Start a new streak
-        dbUser.currentStreak = 1
-      }
-    } else if (!hadStreakLastWeek) {
-      // Reset streak if no streak last week and not yet 3 times this week
-      dbUser.currentStreak = 0
-    }
-    // If we don't have 3 attendances this week but had a streak last week,
-    // we keep the current streak value as is until the week ends
+    // Update the streak using the utility function
+    dbUser.currentStreak = calculateStreak(currentWeekAttendances, hadStreakLastWeek, dbUser.currentStreak || 0)
 
     await dbUser.save()
 

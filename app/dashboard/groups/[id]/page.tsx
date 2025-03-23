@@ -242,7 +242,7 @@ export default function GroupDetailsPage({ params }: { params: { id: string } })
                           {member.streak > 0 && (
                             <Badge variant="outline" className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {member.streak} {member.streak === 1 ? "day" : "days"} streak
+                              {member.streak} {member.streak === 1 ? "week" : "weeks"} streak
                             </Badge>
                           )}
                           <Badge>{member.points} points</Badge>

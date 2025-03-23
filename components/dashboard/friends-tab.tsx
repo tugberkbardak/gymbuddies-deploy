@@ -171,7 +171,7 @@ export function FriendsTab() {
                   {attendance.currentStreak > 0 && (
                     <Badge variant="outline" className="flex items-center gap-1">
                       <Trophy className="h-3 w-3" />
-                      {attendance.currentStreak} {attendance.currentStreak === 1 ? "day" : "days"} streak
+                      {attendance.currentStreak} {attendance.currentStreak === 1 ? "week" : "weeks"} streak
                     </Badge>
                   )}
                 </div>
