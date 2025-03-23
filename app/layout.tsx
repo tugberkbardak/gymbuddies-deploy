@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { ClerkProvider } from "@clerk/nextjs"
 import { Inter } from "next/font/google"
 import "@/app/globals.css"
+import Script from "next/script" // <-- Import Script component
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -34,9 +35,15 @@ export default function RootLayout({
           <link rel="icon" href="/icon.svg" type="image/svg+xml" />
           <link rel="apple-touch-icon" href="/apple-icon.png" />
         </head>
-        <body className={`${inter.className} bg-black text-white`}>{children}</body>
+        <body className={`${inter.className} bg-black text-white`}>
+          {children}
+          {/* Vercel Analytics Script */}
+          <Script
+            src="https://vercel.live/_analytics/script.js"
+            strategy="lazyOnload"
+          />
+        </body>
       </html>
     </ClerkProvider>
   )
 }
-
