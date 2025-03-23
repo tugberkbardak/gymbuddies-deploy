@@ -26,14 +26,15 @@ export async function GET(req: Request) {
     }
 
     // Get global attendance records with pagination
-    const attendances = await Attendance.find({})
+    // Make sure we're only getting records marked as public
+    const attendances = await Attendance.find({ isPublic: true })
       .sort({ date: -1 }) // Sort by date descending (newest first)
       .skip(skip)
       .limit(limit)
       .populate("user", "username firstName lastName profileImage currentStreak")
 
-    // Get total count for pagination info
-    const totalCount = await Attendance.countDocuments({})
+    // Get total count for pagination info - only count public records
+    const totalCount = await Attendance.countDocuments({ isPublic: true })
 
     // Serialize the Mongoose objects
     const serializedAttendances = serializeMongooseObject(attendances)

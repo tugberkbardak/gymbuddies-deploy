@@ -57,6 +57,26 @@ export function GlobalTab() {
     fetchAttendances()
   }, [])
 
+  // Add an event listener to refresh the data when visibility changes
+
+  useEffect(() => {
+    // Function to handle visibility changes
+    const handleVisibilityChange = () => {
+      console.log("Global feed refresh triggered")
+      // Reset to page 1 and fetch fresh data
+      setPage(1)
+      fetchAttendances(1, false)
+    }
+
+    // Add event listener
+    window.addEventListener("attendance-visibility-changed", handleVisibilityChange)
+
+    // Clean up
+    return () => {
+      window.removeEventListener("attendance-visibility-changed", handleVisibilityChange)
+    }
+  }, [])
+
   // Setup intersection observer for infinite scrolling
   const lastAttendanceCallback = useCallback(
     (node) => {

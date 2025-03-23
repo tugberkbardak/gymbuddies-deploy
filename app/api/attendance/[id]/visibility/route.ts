@@ -46,6 +46,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     attendance.isPublic = isPublic
     await attendance.save()
 
+    // Log the update for debugging
+    console.log(`Updated attendance ${params.id} visibility to ${isPublic ? "public" : "private"}`)
+
     // Return the updated record
     return NextResponse.json({
       success: true,

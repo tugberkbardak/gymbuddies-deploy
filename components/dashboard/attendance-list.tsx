@@ -10,6 +10,9 @@ import { getUserAttendance } from "@/actions/attendance-actions"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 
+// Import the refresh utility
+import { refreshGlobalFeed } from "@/utils/refresh-utils"
+
 export const AttendanceList = forwardRef(function AttendanceList(props, ref) {
   const { toast } = useToast()
   const [attendanceData, setAttendanceData] = useState([])
@@ -62,6 +65,7 @@ export const AttendanceList = forwardRef(function AttendanceList(props, ref) {
     return `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`
   }
 
+  // In the toggleVisibility function, use the utility to refresh the global feed
   const toggleVisibility = async (attendanceId, isPublic) => {
     setUpdatingVisibility((prev) => ({ ...prev, [attendanceId]: true }))
 
@@ -78,6 +82,12 @@ export const AttendanceList = forwardRef(function AttendanceList(props, ref) {
         throw new Error("Failed to update visibility")
       }
 
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to update visibility")
+      }
+
       // Update the local state
       setAttendanceData((prev) => prev.map((item) => (item._id === attendanceId ? { ...item, isPublic } : item)))
 
@@ -85,6 +95,9 @@ export const AttendanceList = forwardRef(function AttendanceList(props, ref) {
         title: "Visibility updated",
         description: isPublic ? "Record is now public" : "Record is now private",
       })
+
+      // Refresh the global feed
+      refreshGlobalFeed()
     } catch (error) {
       console.error("Error updating visibility:", error)
       toast({
