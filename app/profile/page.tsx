@@ -55,6 +55,16 @@ export default async function ProfilePage() {
   const bio = dbUser.bio || (user.unsafeMetadata as any)?.bio || null
   const defaultGym = dbUser.defaultGym || (user.unsafeMetadata as any)?.defaultGym || null
 
+  // Add some console logging
+  console.log("Profile page data:", {
+    dbUserBio: dbUser.bio,
+    clerkBio: (user.unsafeMetadata as any)?.bio,
+    dbUserGym: dbUser.defaultGym,
+    clerkGym: (user.unsafeMetadata as any)?.defaultGym,
+    finalBio: bio,
+    finalGym: defaultGym,
+  })
+
   // Calculate real rank among friends
   // 1. Get all friends
   const friendships = await Friendship.find({
@@ -140,7 +150,7 @@ export default async function ProfilePage() {
             </CardHeader>
             <CardContent>
               {/* Profile Info Display Component */}
-              <ProfileInfoDisplay bio={bio} defaultGym={defaultGym} userId={user.id} />
+              <ProfileInfoDisplay bio={bio} defaultGym={defaultGym} userId={user.id} isOwnProfile={true} />
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
                 <Card>

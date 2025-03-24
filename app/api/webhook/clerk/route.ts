@@ -92,6 +92,9 @@ export async function POST(req: Request) {
         // Add this line to update the defaultGym
         existingUser.defaultGym = user_metadata?.defaultGym || existingUser.defaultGym || ""
 
+        // Add this line to update the bio
+        existingUser.bio = user_metadata?.bio || existingUser.bio || ""
+
         // Only update username if it's provided and different
         if (username && username !== existingUser.username) {
           // Check if the new username is already taken

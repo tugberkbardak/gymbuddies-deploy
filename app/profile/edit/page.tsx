@@ -14,6 +14,9 @@ import Link from "next/link"
 import { ChevronLeft, Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
+// Import the server action
+import { updateUserProfile } from "@/actions/profile-actions"
+
 export default function EditProfilePage() {
   const { user, isLoaded } = useUser()
   const router = useRouter()
@@ -57,7 +60,7 @@ export default function EditProfilePage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  // Update the handleSubmit function to log the data being saved
+  // Update the handleSubmit function to also update the MongoDB database
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -72,6 +75,13 @@ export default function EditProfilePage() {
     try {
       console.log("Updating profile with:", formData)
 
+      // Create a FormData object to pass to the server action
+      const formDataObj = new FormData()
+      formDataObj.append("firstName", formData.firstName)
+      formDataObj.append("lastName", formData.lastName)
+      formDataObj.append("bio", formData.bio)
+      formDataObj.append("defaultGym", formData.defaultGym)
+
       // Update user in Clerk
       await user.update({
         firstName: formData.firstName,
@@ -82,6 +92,13 @@ export default function EditProfilePage() {
           defaultGym: formData.defaultGym,
         },
       })
+
+      // Also update user in MongoDB directly
+      const result = await updateUserProfile(formDataObj)
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update profile in database")
+      }
 
       // Force a refresh to ensure the data is updated
       router.push("/profile")

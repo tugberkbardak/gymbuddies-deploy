@@ -15,6 +15,7 @@ import AttendanceHeatmap from "@/components/profile/attendance-heatmap"
 import { getUserAttendanceHeatmap } from "@/actions/attendance-actions"
 import { FriendshipActions } from "@/components/profile/friendship-actions"
 import { BuddiesCard } from "@/components/profile/buddies-card"
+import { ProfileInfoDisplay } from "@/components/profile/profile-info-display"
 
 export default async function UserProfilePage({ params }: { params: { id: string } }) {
   const { userId } = auth()
@@ -191,12 +192,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
               </div>
             </CardHeader>
             <CardContent>
-              {profileUser.bio && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium mb-2">Bio</h3>
-                  <p className="text-sm text-muted-foreground">{profileUser.bio}</p>
-                </div>
-              )}
+              {/* Use ProfileInfoDisplay component to show bio and gym info */}
+              <ProfileInfoDisplay
+                bio={profileUser.bio}
+                defaultGym={profileUser.defaultGym}
+                userId={params.id}
+                isOwnProfile={isOwnProfile}
+              />
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                 <Card>

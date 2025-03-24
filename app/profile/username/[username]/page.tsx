@@ -26,6 +26,7 @@ import { SignInButton } from "@clerk/nextjs"
 import { JoinCTA } from "@/components/profile/join-cta"
 import { ShareProfileButton } from "@/components/profile/share-profile-button"
 import { BuddiesCard } from "@/components/profile/buddies-card"
+import { ProfileInfoDisplay } from "@/components/profile/profile-info-display"
 
 export default async function ProfileByUsernamePage({ params }: { params: { username: string } }) {
   const user = await currentUser()
@@ -206,12 +207,13 @@ export default async function ProfileByUsernamePage({ params }: { params: { user
               </div>
             </CardHeader>
             <CardContentUI>
-              {profileUser.bio && isSignedIn && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium mb-2">Bio</h3>
-                  <p className="text-sm text-muted-foreground">{profileUser.bio}</p>
-                </div>
-              )}
+              {/* Use ProfileInfoDisplay component to show bio and gym info */}
+              <ProfileInfoDisplay
+                bio={profileUser.bio}
+                defaultGym={profileUser.defaultGym}
+                userId={profileUser.clerkId}
+                isOwnProfile={isOwnProfile}
+              />
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                 <CardUI>
