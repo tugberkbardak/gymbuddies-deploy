@@ -1,15 +1,15 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { AttendanceTab } from "@/components/dashboard/attendance-tab"
 import { FriendsTab } from "@/components/dashboard/friends-tab"
 import { GroupsTab } from "@/components/dashboard/groups-tab"
 import { GlobalTab } from "@/components/dashboard/global-tab"
+import { FindBuddyTab } from "@/components/dashboard/find-buddy-tab"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface DashboardTabsProps {
   defaultTab: string
@@ -22,14 +22,12 @@ export function DashboardTabs({ defaultTab, pendingFriendRequestsCount, isPremiu
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const containerRef = useRef<HTMLDivElement>(null)
-  const [isMobile, setIsMobile] = useState(false)
   const [activeTab, setActiveTab] = useState(defaultTab)
   const [visibleTab, setVisibleTab] = useState(defaultTab) // Tab that's actually visible/loaded
-  const [slideDirection, setSlideDirection] = useState<"left" | "right">("right")
   const [isLoading, setIsLoading] = useState(false)
 
   // Define the tab order for navigation
-  const tabOrder = ["attendance", "friends", "global", "groups"]
+  const tabOrder = ["attendance", "friends", "find-buddy", "global", "groups"]
 
   // Update active tab when URL changes
   useEffect(() => {
@@ -38,23 +36,6 @@ export function DashboardTabs({ defaultTab, pendingFriendRequestsCount, isPremiu
       setActiveTab(tabFromUrl)
     }
   }, [searchParams, tabOrder])
-
-  useEffect(() => {
-    // Check if we're on mobile
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-
-    // Initial check
-    checkMobile()
-
-    // Listen for resize events
-    window.addEventListener("resize", checkMobile)
-
-    return () => {
-      window.removeEventListener("resize", checkMobile)
-    }
-  }, [])
 
   // Handle loading the tab content after the tab indicator has moved
   useEffect(() => {
@@ -70,86 +51,6 @@ export function DashboardTabs({ defaultTab, pendingFriendRequestsCount, isPremiu
       return () => clearTimeout(timer)
     }
   }, [activeTab, visibleTab])
-
-  const handleTabChange = (value: string) => {
-    // Don't do anything if we're already on this tab
-    if (value === activeTab) return
-
-    // Determine slide direction based on tab indices
-    const currentIndex = tabOrder.indexOf(activeTab)
-    const newIndex = tabOrder.indexOf(value)
-
-    setSlideDirection(newIndex > currentIndex ? "right" : "left")
-
-    // Update active tab immediately (this moves the indicator)
-    setActiveTab(value)
-
-    // Update URL
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("tab", value)
-    router.push(`${pathname}?${params.toString()}`)
-  }
-
-  // Touch handling for swipe navigation
-  useEffect(() => {
-    if (!isMobile || !containerRef.current) return
-
-    let touchStartX = 0
-    let touchEndX = 0
-
-    const handleTouchStart = (e: TouchEvent) => {
-      touchStartX = e.touches[0].clientX
-    }
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      touchEndX = e.changedTouches[0].clientX
-      handleSwipe()
-    }
-
-    const handleSwipe = () => {
-      const currentTabIndex = tabOrder.indexOf(activeTab)
-      if (currentTabIndex === -1) return
-
-      // Minimum swipe distance (px)
-      const minSwipeDistance = 50
-
-      // Calculate swipe distance
-      const swipeDistance = touchEndX - touchStartX
-
-      // If the swipe is too small, ignore it
-      if (Math.abs(swipeDistance) < minSwipeDistance) return
-
-      if (swipeDistance > 0) {
-        // Swiped right (go to previous tab)
-        if (currentTabIndex > 0) {
-          handleTabChange(tabOrder[currentTabIndex - 1])
-        }
-      } else {
-        // Swiped left (go to next tab)
-        if (currentTabIndex < tabOrder.length - 1) {
-          handleTabChange(tabOrder[currentTabIndex + 1])
-        }
-      }
-    }
-
-    const element = containerRef.current
-    element.addEventListener("touchstart", handleTouchStart, { passive: true })
-    element.addEventListener("touchend", handleTouchEnd, { passive: true })
-
-    return () => {
-      element.removeEventListener("touchstart", handleTouchStart)
-      element.removeEventListener("touchend", handleTouchEnd)
-    }
-  }, [isMobile, activeTab, tabOrder])
-
-  // Calculate indicator position based on active tab
-  const getIndicatorStyle = () => {
-    const index = tabOrder.indexOf(activeTab)
-    return {
-      left: `${index * 25}%`,
-      width: "25%",
-    }
-  }
 
   // Render loading state
   const renderLoadingState = () => (
@@ -178,6 +79,12 @@ export function DashboardTabs({ defaultTab, pendingFriendRequestsCount, isPremiu
             <FriendsTab />
           </TabsContent>
         )
+      case "find-buddy":
+        return (
+          <TabsContent value="find-buddy" forceMount className="space-y-4 block">
+            <FindBuddyTab />
+          </TabsContent>
+        )
       case "global":
         return (
           <TabsContent value="global" forceMount className="space-y-4 block">
@@ -200,33 +107,8 @@ export function DashboardTabs({ defaultTab, pendingFriendRequestsCount, isPremiu
   }
 
   return (
-    <div ref={containerRef} className="relative">
-      <Tabs value={activeTab} className="w-full" onValueChange={handleTabChange}>
-        <div className="relative">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
-            <TabsTrigger value="attendance">Attendance</TabsTrigger>
-            <TabsTrigger value="friends" className="relative">
-              Friends
-              {pendingFriendRequestsCount > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-2 -right-2 h-5 min-w-5 flex items-center justify-center rounded-full text-xs px-1 bg-red-600 hover:bg-red-700"
-                >
-                  {pendingFriendRequestsCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="global">Global</TabsTrigger>
-            <TabsTrigger value="groups">Groups</TabsTrigger>
-          </TabsList>
-
-          {/* Animated indicator */}
-          <div
-            className="absolute bottom-0 h-0.5 bg-primary rounded-full transition-all duration-300 ease-spring"
-            style={getIndicatorStyle()}
-          />
-        </div>
-
+    <div ref={containerRef} className="relative pb-16">
+      <Tabs value={activeTab} className="w-full">
         <div className="relative overflow-hidden">
           <div className={cn("transition-all duration-300 transform", isLoading ? "opacity-0" : "opacity-100")}>
             {renderTabContent()}

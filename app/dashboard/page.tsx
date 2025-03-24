@@ -5,6 +5,7 @@ import dbConnect from "@/lib/mongodb"
 import User from "@/models/User"
 import { getPendingFriendRequestsCount } from "@/actions/friend-actions"
 import { DashboardTabs } from "@/components/dashboard/dashboard-tabs"
+import { BottomNavigation } from "@/components/dashboard/bottom-navigation"
 
 export default async function DashboardPage({ searchParams }: { searchParams: { tab?: string } }) {
   // Get auth info
@@ -63,6 +64,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
             isPremiumUser={isPremiumUser}
           />
         </main>
+
+        <BottomNavigation pendingFriendRequestsCount={pendingFriendRequestsCount} />
       </div>
     </>
   )
