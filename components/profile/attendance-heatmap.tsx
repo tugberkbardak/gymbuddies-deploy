@@ -30,7 +30,10 @@ export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHea
     const processedData: Record<string, number> = {}
 
     attendanceData.forEach((item) => {
-      const dateStr = new Date(item.date).toISOString().split("T")[0]
+      // Create a date object and ensure we're using local timezone
+      const date = new Date(item.date)
+      // Format to YYYY-MM-DD in local timezone
+      const dateStr = date.toLocaleDateString("en-CA") // en-CA uses YYYY-MM-DD format
       processedData[dateStr] = item.count
     })
 
@@ -60,7 +63,7 @@ export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHea
       let daysAttended = 0
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, index, day)
-        const dateStr = date.toISOString().split("T")[0]
+        const dateStr = date.toLocaleDateString("en-CA") // Use consistent date format
         if (processedData[dateStr]) {
           daysAttended++
         }
@@ -100,37 +103,51 @@ export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHea
 
   // Group dates by month and week for desktop view
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-  const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-  // Group dates by week for desktop view
-  const weeks: Date[][] = []
-  let currentWeek: Date[] = []
+  // Create a more consistent grid of weeks
+  const createWeekGrid = () => {
+    // Start with the first day of the year
+    const firstDay = new Date(year, 0, 1)
 
-  // Find the first Monday of the year or the first day of the year
-  let startIndex = 0
-  while (startIndex < yearDates.length && yearDates[startIndex].getDay() !== 1) {
-    startIndex++
+    // Find the first Monday (or go back to the previous year's last days if needed)
+    const firstMonday = new Date(firstDay)
+    while (firstMonday.getDay() !== 1) {
+      // 1 is Monday
+      firstMonday.setDate(firstMonday.getDate() - 1)
+    }
+
+    // Create a grid with exactly 53 weeks (max possible in a year) and 7 days per week
+    const grid: Date[][] = []
+
+    // Start from the first Monday
+    const currentDate = new Date(firstMonday)
+
+    // Create 53 weeks
+    for (let week = 0; week < 53; week++) {
+      const weekDates: Date[] = []
+
+      // 7 days per week
+      for (let day = 0; day < 7; day++) {
+        weekDates.push(new Date(currentDate))
+        currentDate.setDate(currentDate.getDate() + 1)
+      }
+
+      grid.push(weekDates)
+
+      // Stop if we've gone past the end of the year
+      if (currentDate.getFullYear() > year) {
+        break
+      }
+    }
+
+    return grid
   }
 
-  // If no Monday is found at the beginning, start from the first day
-  if (startIndex >= 7) startIndex = 0
-
-  for (let i = startIndex; i < yearDates.length; i++) {
-    if (yearDates[i].getDay() === 1 && currentWeek.length > 0) {
-      weeks.push(currentWeek)
-      currentWeek = []
-    }
-    currentWeek.push(yearDates[i])
-
-    // Handle the last week
-    if (i === yearDates.length - 1) {
-      weeks.push(currentWeek)
-    }
-  }
+  const weekGrid = createWeekGrid()
 
   // Calculate the color for a cell based on attendance
   const getCellColor = (date: Date) => {
-    const dateStr = date.toISOString().split("T")[0]
+    const dateStr = date.toLocaleDateString("en-CA")
     const count = heatmapData[dateStr] || 0
 
     if (count === 0) return "bg-gray-800"
@@ -145,6 +162,11 @@ export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHea
       month: "long",
       day: "numeric",
     })
+  }
+
+  // Check if a date is in the current year
+  const isInCurrentYear = (date: Date) => {
+    return date.getFullYear() === year
   }
 
   return (
@@ -181,7 +203,7 @@ export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHea
       <div className="hidden md:block overflow-x-auto">
         <div className="min-w-[800px]">
           <div className="flex">
-            <div className="w-12"></div>
+            <div className="w-6"></div> {/* Reduced width, no weekday labels */}
             <div className="flex flex-1 justify-between px-2">
               {months.map((month) => (
                 <div key={month} className="text-xs text-muted-foreground">
@@ -192,31 +214,29 @@ export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHea
           </div>
 
           <div className="flex">
-            <div className="w-12 pt-2">
-              {weekdays.map(
-                (day, i) =>
-                  i % 2 === 0 && (
-                    <div key={day} className="h-5 text-xs text-muted-foreground">
-                      {day}
-                    </div>
-                  ),
-              )}
-            </div>
+            {/* Empty space where weekday labels were */}
+            <div className="w-6"></div>
 
-            <div className="flex-1 grid grid-flow-col gap-[2px]">
-              {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="grid grid-flow-row gap-[2px]">
-                  {week.map((date, dateIndex) => (
-                    <TooltipProvider key={dateIndex}>
+            {/* Grid for the heatmap cells with consistent spacing */}
+            <div className="flex-1 grid grid-cols-53 gap-x-[2px]">
+              {weekGrid.map((week, weekIndex) => (
+                <div key={weekIndex} className="grid grid-rows-7 gap-y-[2px]">
+                  {week.map((date, dayIndex) => (
+                    <TooltipProvider key={dayIndex}>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className={cn("w-4 h-4 rounded-sm", getCellColor(date))} />
+                          <div
+                            className={cn(
+                              "w-4 h-4 rounded-sm",
+                              isInCurrentYear(date) ? getCellColor(date) : "bg-transparent",
+                            )}
+                          />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>{formatDate(date)}</p>
                           <p>
-                            {heatmapData[date.toISOString().split("T")[0]]
-                              ? `${heatmapData[date.toISOString().split("T")[0]]} gym visits`
+                            {isInCurrentYear(date) && heatmapData[date.toLocaleDateString("en-CA")]
+                              ? `${heatmapData[date.toLocaleDateString("en-CA")]} gym visits`
                               : "No gym visits"}
                           </p>
                         </TooltipContent>
@@ -229,10 +249,10 @@ export default function AttendanceHeatmap({ attendanceData = [] }: AttendanceHea
           </div>
 
           <div className="flex justify-end items-center mt-2">
-            <div className="text-xs text-muted-foreground mr-2">Not</div>
+            <div className="text-xs text-muted-foreground mr-2">Less</div>
             <div className="bg-gray-800 w-3 h-3 rounded-sm"></div>
             <div className="bg-[#83FFE6] w-3 h-3 rounded-sm ml-1"></div>
-            <div className="text-xs text-muted-foreground ml-2">Attended</div>
+            <div className="text-xs text-muted-foreground ml-2">More</div>
           </div>
         </div>
       </div>

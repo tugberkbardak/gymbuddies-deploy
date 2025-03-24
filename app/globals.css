@@ -60,5 +60,14 @@ body {
   .pb-safe {
     padding-bottom: calc(env(safe-area-inset-bottom) + 3.5rem);
   }
+
+  /* Add custom grid columns for the heatmap */
+  .grid-cols-53 {
+    grid-template-columns: repeat(53, minmax(0, 1fr));
+  }
+
+  .grid-rows-7 {
+    grid-template-rows: repeat(7, minmax(0, 1fr));
+  }
 }
 

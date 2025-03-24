@@ -154,8 +154,10 @@ export async function getUserAttendanceHeatmap(userId?: string, year?: number) {
     const dateMap = new Map()
 
     attendanceRecords.forEach((record) => {
+      // Create a date object in the local timezone
       const date = new Date(record.date)
-      const dateStr = date.toISOString().split("T")[0] // YYYY-MM-DD format
+      // Format to YYYY-MM-DD in local timezone
+      const dateStr = date.toLocaleDateString("en-CA") // en-CA uses YYYY-MM-DD format
 
       if (dateMap.has(dateStr)) {
         dateMap.set(dateStr, dateMap.get(dateStr) + 1)
