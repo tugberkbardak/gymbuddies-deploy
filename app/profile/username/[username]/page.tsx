@@ -29,13 +29,16 @@ import { BuddiesCard } from "@/components/profile/buddies-card"
 import { ProfileInfoDisplay } from "@/components/profile/profile-info-display"
 
 export default async function ProfileByUsernamePage({ params }: { params: { username: string } }) {
+  // Make sure to await the params
+  const username = await Promise.resolve(params.username)
+
   const user = await currentUser()
   const isSignedIn = !!user
 
   await dbConnect()
 
   // Find the user by username
-  const profileUser = await User.findOne({ username: params.username })
+  const profileUser = await User.findOne({ username })
 
   if (!profileUser) {
     // Render a "user not found" message
@@ -55,7 +58,7 @@ export default async function ProfileByUsernamePage({ params }: { params: { user
             <CardContent className="flex flex-col items-center justify-center p-12">
               <h2 className="text-xl font-bold mb-2">User Not Found</h2>
               <p className="text-muted-foreground mb-4">
-                The user with username "{params.username}" doesn't exist or has been removed.
+                The user with username "{username}" doesn't exist or has been removed.
               </p>
               <Button asChild>
                 <Link href="/">Return to Home</Link>

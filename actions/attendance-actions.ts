@@ -8,9 +8,6 @@ import { serializeMongooseObject } from "@/lib/utils-server"
 import { revalidatePath } from "next/cache"
 import { startOfWeek, endOfWeek, subWeeks } from "date-fns"
 
-// Import the streak calculator utility
-import { calculateStreak } from "@/utils/streak-calculator"
-
 // Get user's attendance records
 export async function getUserAttendance(limit = 10, page = 1) {
   try {
@@ -266,7 +263,7 @@ export async function recordAttendance(formData: FormData) {
     // Check if the user has at least 3 attendances this week
     const hasThreeAttendancesThisWeek = currentWeekAttendances >= 3
 
-    // Check if the user had a streak last week
+    // Check if the user had a streak last week (3+ attendances)
     const lastWeekStart = subWeeks(currentWeekStart, 1)
     const lastWeekEnd = subWeeks(currentWeekEnd, 1)
 
@@ -277,8 +274,19 @@ export async function recordAttendance(formData: FormData) {
 
     const hadStreakLastWeek = lastWeekAttendances >= 3
 
-    // Update the streak using the utility function
-    dbUser.currentStreak = calculateStreak(currentWeekAttendances, hadStreakLastWeek, dbUser.currentStreak || 0)
+    // Apply the stricter streak calculation
+    if (hasThreeAttendancesThisWeek) {
+      if (hadStreakLastWeek) {
+        // If they had a streak last week and qualified this week, increment
+        dbUser.currentStreak = (dbUser.currentStreak || 0) + 1
+      } else {
+        // If they didn't have a streak last week but qualified this week, start at 1
+        dbUser.currentStreak = 1
+      }
+    } else {
+      // If they don't have 3+ attendances this week, no streak
+      dbUser.currentStreak = 0
+    }
 
     await dbUser.save()
 

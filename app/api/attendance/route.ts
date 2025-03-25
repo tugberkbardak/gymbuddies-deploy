@@ -5,8 +5,6 @@ import Attendance from "@/models/Attendance"
 import User from "@/models/User"
 import { serializeMongooseObject } from "@/lib/utils-server"
 import { startOfWeek, endOfWeek, subWeeks } from "date-fns"
-// Import the streak calculator utility
-import { calculateStreak } from "@/utils/streak-calculator"
 
 export async function POST(req: NextRequest) {
   try {
@@ -134,10 +132,13 @@ export async function POST(req: NextRequest) {
       date: { $gte: currentWeekStart, $lte: currentWeekEnd },
     })
 
+    // Get total attendance count
+    const totalAttendance = await Attendance.countDocuments({ user: dbUser._id })
+
     // Check if the user has at least 3 attendances this week
     const hasThreeAttendancesThisWeek = currentWeekAttendances >= 3
 
-    // Check if the user had a streak last week
+    // Check if the user had a streak last week (3+ attendances)
     const lastWeekStart = subWeeks(currentWeekStart, 1)
     const lastWeekEnd = subWeeks(currentWeekEnd, 1)
 
@@ -148,8 +149,26 @@ export async function POST(req: NextRequest) {
 
     const hadStreakLastWeek = lastWeekAttendances >= 3
 
-    // Update the streak using the utility function
-    dbUser.currentStreak = calculateStreak(currentWeekAttendances, hadStreakLastWeek, dbUser.currentStreak || 0)
+    // STRICT STREAK LOGIC
+    // 1. If total attendance is less than 3, streak is always 0
+    if (totalAttendance < 3) {
+      dbUser.currentStreak = 0
+    }
+    // 2. If they have 3+ attendances this week, check if they qualify for a streak
+    else if (hasThreeAttendancesThisWeek) {
+      if (hadStreakLastWeek) {
+        // If they had a streak last week and qualified this week, increment
+        dbUser.currentStreak = (dbUser.currentStreak || 0) + 1
+      } else {
+        // If they didn't have a streak last week but qualified this week, start at 1
+        dbUser.currentStreak = 1
+      }
+    }
+    // 3. If they don't have 3+ attendances this week and didn't have a streak last week, no streak
+    else if (!hadStreakLastWeek) {
+      dbUser.currentStreak = 0
+    }
+    // 4. Otherwise, keep their current streak until the week is complete
 
     await dbUser.save()
 
