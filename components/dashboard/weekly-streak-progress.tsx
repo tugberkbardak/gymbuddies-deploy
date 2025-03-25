@@ -60,7 +60,7 @@ export function WeeklyStreakProgress() {
     return (
       <Card>
         <CardHeader className="py-4">
-          <CardTitle className="text-sm font-medium">Weekly Progress</CardTitle>
+          <CardTitle className="text-sm font-medium">Weekly Streak Progress</CardTitle>
         </CardHeader>
         <CardContent className="py-2 flex justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -80,7 +80,7 @@ export function WeeklyStreakProgress() {
             <span>{weeklyAttendances}/3 gym visits this week</span>
             <span className="text-muted-foreground">{weekRange}</span>
           </div>
-          <Progress value={progressPercentage} className="h-2" />
+          <Progress value={progressPercentage} className="h-2" indicatorClassName="bg-[#83FFE6]" />
           <p className="text-xs text-muted-foreground">
             {weeklyAttendances >= 3
               ? "You've earned your streak for this week! 🎉"
