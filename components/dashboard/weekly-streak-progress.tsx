@@ -107,35 +107,39 @@ export function WeeklyStreakProgress() {
   }
 
   return (
-    <Card>
-      <CardHeader className="py-4">
-        <CardTitle className="text-sm font-medium">Weekly Streak Progress</CardTitle>
-      </CardHeader>
-      <CardContent className="py-2">
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>{weeklyAttendances}/3 gym visits this week</span>
-            <span className="text-muted-foreground">{weekRange}</span>
-          </div>
-          <Progress value={progressPercentage} className="h-2" indicatorClassName="bg-[#83FFE6]" />
-          <p className="text-xs text-muted-foreground">
-            {weeklyAttendances >= 3
-              ? "You've earned your streak for this week! 🎉"
-              : `${3 - weeklyAttendances} more visits needed this week to maintain your streak`}
-          </p>
+    <Card className="bg-[#83FFE6] text-black">
+  <CardHeader className="py-4">
+    <CardTitle className="text-sm font-medium">Weekly Streak Progress</CardTitle>
+  </CardHeader>
+  <CardContent className="py-2">
+    <div className="space-y-2">
+      <div className="flex justify-between text-sm">
+        <span>{weeklyAttendances}/3 gym visits this week</span>
+        <span className="text-black">{weekRange}</span>
+      </div>
+      <Progress
+        value={progressPercentage}
+        className="h-2 bg-black/30"
+        indicatorClassName="bg-black"
+      />
+      <p className="text-xs text-black">
+        {weeklyAttendances >= 3
+          ? "You've earned your streak for this week! 🎉"
+          : `${3 - weeklyAttendances} more visits needed this week to maintain your streak`}
+      </p>
 
-          {/* Only show current streak if it's greater than 0 */}
-          {currentStreak > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Current streak:{" "}
-              <span className="font-medium">
-                {currentStreak} {currentStreak === 1 ? "week" : "weeks"}
-              </span>
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      {currentStreak > 0 && (
+        <p className="text-xs text-black mt-1">
+          Current streak:{" "}
+          <span className="font-medium">
+            {currentStreak} {currentStreak === 1 ? "week" : "weeks"}
+          </span>
+        </p>
+      )}
+    </div>
+  </CardContent>
+</Card>
+
   )
 }
 

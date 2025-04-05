@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useAttendanceRefresh } from "@/hooks/use-attendance-refresh"
 import { WeeklyStreakProgress } from "@/components/dashboard/weekly-streak-progress"
+import { Plus } from "lucide-react"
+
 
 export function AttendanceTab() {
   const { user } = useUser()
@@ -262,14 +264,14 @@ export function AttendanceTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      <div className="relative flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Gym Attendance</h2>
         <Button
           onClick={() => setShowForm(true)}
-          size="sm"
-          className="text-sm px-3 py-1 h-auto sm:text-base sm:px-4 sm:py-2 sm:h-10"
+          size="icon"
+          className="w-10 h-10 bg-[#83FFE6] text-black hover:bg-[#6be5d0]"
         >
-          Record Attendance
+          <Plus className="w-6 h-6" strokeWidth={4} />
         </Button>
       </div>
 
