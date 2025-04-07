@@ -12,11 +12,11 @@ export const metadata: Metadata = {
   description: "Record your gym attendance, share your progress with friends, and compete in groups to stay motivated.",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/logo2.svg", type: "image/svg+xml" },
+      { url: "/logo2.svg", sizes: "any" },
+      { url: "/logo2.svg", type: "image/svg" },
     ],
-    shortcut: ["/favicon.ico"],
-    apple: [{ url: "/apple-icon.png" }],
+    shortcut: ["/logo1.svg"],
+    apple: [{ url: "/logo1.svg" }],
   },
   manifest: "/manifest.json",
 }
