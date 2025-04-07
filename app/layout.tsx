@@ -16,7 +16,7 @@ export const metadata: Metadata = {
       { url: "/logo2.svg", type: "image/svg" },
     ],
     shortcut: ["/logo1.svg"],
-    apple: [{ url: "/logo1.svg" }],
+    apple: [{ url: "/logo1.png" }],
   },
   manifest: "/manifest.json",
 }
@@ -33,7 +33,7 @@ export default function RootLayout({
           <link rel="shortcut icon" href="/favicon.ico" />
           <link rel="icon" href="/favicon.ico" sizes="any" />
           <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-          <link rel="apple-touch-icon" href="/apple-icon.png" />
+          <link rel="apple-touch-icon" href="/logo1.png" />
         </head>
         <body className={`${inter.className} bg-black text-white`}>
           {children}
