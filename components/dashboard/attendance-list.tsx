@@ -187,9 +187,9 @@ export const AttendanceList = forwardRef(function AttendanceList(props, ref) {
                     )}
                   </Label>
                 </div>
-                <Badge variant="secondary" className="mt-1 sm:mt-0 self-start">
+                {/* <Badge variant="secondary" className="mt-1 sm:mt-0 self-start">
                   {item.points} {item.points === 1 ? "Point" : "Points"}
-                </Badge>
+                </Badge> */}
               </div>
             </div>
           </CardHeader>

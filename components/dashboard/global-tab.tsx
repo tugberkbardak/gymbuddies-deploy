@@ -180,9 +180,12 @@ export function GlobalTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start">
         <h2 className="text-2xl font-bold">Global Activity</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
+          <Button variant="outline" size="sm">
+            Live Updates
+          </Button>
           <Button
             onClick={() => setShowLeaderboard(!showLeaderboard)}
             variant="outline"
@@ -190,9 +193,6 @@ export function GlobalTab() {
           >
             <Trophy className="mr-2 h-4 w-4" />
             {showLeaderboard ? "Hide Leaderboard" : "Show Leaderboard"}
-          </Button>
-          <Button variant="outline" size="sm">
-            Live Updates
           </Button>
         </div>
       </div>
@@ -220,45 +220,45 @@ export function GlobalTab() {
                 {leaderboardUsers.map((user, index) => (
                   <div
                     key={user._id}
-                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-[#40E0D0]/5 transition-colors"
+                    className="flex items-start gap-3 p-3 rounded-lg border hover:bg-[#40E0D0]/5 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-6 h-6 flex items-center justify-center rounded-full 
-                        ${
-                          index === 0
-                            ? "bg-yellow-500"
-                            : index === 1
-                              ? "bg-gray-400"
-                              : index === 2
-                                ? "bg-amber-700"
-                                : "bg-[#40E0D0]/20"
-                        } 
-                        text-white font-bold text-xs`}
-                      >
-                        {index + 1}
-                      </div>
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.profileImage || user.profileImageUrl} alt={user.username} />
-                        <AvatarFallback>{user.username?.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <Link
-                          href={`/profile/username/${user.username}`}
-                          className="font-medium flex items-center gap-1 hover:text-[#40E0D0] hover:underline"
-                        >
-                          {user.firstName} {user.lastName}
-                          {index < 10 && <Crown className="h-3 w-3 text-[#40E0D0]" />}
-                        </Link>
-                        <p className="text-xs text-muted-foreground">@{user.username}</p>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <Trophy className="h-3 w-3 text-[#40E0D0]" />
-                          <span className="font-medium">{user.currentStreak || 0} week streak</span>
-                        </div>
-                      </div>
+                    <div
+                      className={`w-6 h-6 flex items-center justify-center rounded-full flex-shrink-0
+                    ${
+                      index === 0
+                        ? "bg-yellow-500"
+                        : index === 1
+                          ? "bg-gray-400"
+                          : index === 2
+                            ? "bg-amber-700"
+                            : "bg-[#40E0D0]/20"
+                    } 
+                    text-white font-bold text-xs`}
+                    >
+                      {index + 1}
                     </div>
-                    <div className="text-right">
-                      <Badge className="bg-[#40E0D0] text-black">{user.attendanceCount} check-ins</Badge>
+                    <Avatar className="h-10 w-10 flex-shrink-0">
+                      <AvatarImage src={user.profileImage || user.profileImageUrl} alt={user.username} />
+                      <AvatarFallback>{user.username?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <Link
+                        href={`/profile/username/${user.username}`}
+                        className="font-medium flex items-center gap-1 hover:text-[#40E0D0] hover:underline truncate"
+                      >
+                        {user.firstName} {user.lastName}
+                        {index < 10 && <Crown className="h-3 w-3 text-[#40E0D0] flex-shrink-0" fill="currentColor" />}
+                      </Link>
+                      <p className="text-xs text-muted-foreground truncate">@{user.username}</p>
+                      <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Trophy className="h-3 w-3 text-[#40E0D0] flex-shrink-0" />
+                        <span className="font-medium">{user.currentStreak || 0} week streak</span>
+                      </div>
+                      <div className="mt-2">
+                        <Badge className="bg-[#40E0D0] text-black whitespace-nowrap text-xs px-2 py-1">
+                          {user.attendanceCount} check-ins
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -300,19 +300,21 @@ export function GlobalTab() {
                   </Link>
                   {/* Modify the attendance display section to check if the user is in the top 10 */}
                   {/* Find the section where attendance user info is displayed and update it: */}
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <Link
                       href={`/profile/username/${attendance.user?.username || ""}`}
-                      className="font-medium flex items-center gap-1 hover:text-[#40E0D0] hover:underline"
+                      className="font-medium flex items-center gap-1 hover:text-[#40E0D0] hover:underline truncate"
                     >
                       {attendance.user?.firstName} {attendance.user?.lastName}
-                      {topUserIds.includes(attendance.user?._id) && <Crown className="h-3 w-3 text-[#40E0D0]" />}
+                      {topUserIds.includes(attendance.user?._id) && (
+                        <Crown className="h-3 w-3 text-[#40E0D0] flex-shrink-0" fill="currentColor" />
+                      )}
                     </Link>
-                    <p className="text-xs text-muted-foreground">@{attendance.user?.username}</p>
+                    <p className="text-xs text-muted-foreground truncate">@{attendance.user?.username}</p>
                   </div>
-                  <Badge variant="outline" className="md:hidden">
+                  {/* <Badge variant="outline" className="md:hidden whitespace-nowrap text-xs ml-2">
                     {attendance.points || 1} Point
-                  </Badge>
+                  </Badge> */}
                 </div>
 
                 <div className="flex justify-between items-start">
@@ -376,7 +378,7 @@ export function GlobalTab() {
 
                   {/* Desktop view for image and badge */}
                   <div className="hidden md:flex md:flex-col md:items-end md:gap-4 md:ml-4 md:min-w-[200px]">
-                    <Badge variant="outline">{attendance.points || 1} Point</Badge>
+                    {/* <Badge variant="outline">{attendance.points || 1} Point</Badge> */}
 
                     {attendance.image && (
                       <div className="rounded-md overflow-hidden w-full max-w-[200px]">

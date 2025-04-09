@@ -165,9 +165,9 @@ export function FriendsTab() {
                     </Link>
                     <p className="text-sm text-muted-foreground">@{attendance.user?.username}</p>
                   </div>
-                  <Badge variant="outline" className="md:hidden">
+                  {/* <Badge variant="outline" className="md:hidden">
                     {attendance.points || 1} Point
-                  </Badge>
+                  </Badge> */}
                   {attendance.currentStreak > 0 && (
                     <Badge variant="outline" className="flex items-center gap-1">
                       <Trophy className="h-3 w-3" />
@@ -237,7 +237,7 @@ export function FriendsTab() {
 
                   {/* Desktop view for image and badge */}
                   <div className="hidden md:flex md:flex-col md:items-end md:gap-4 md:ml-4 md:min-w-[200px]">
-                    <Badge variant="outline">{attendance.points || 1} Point</Badge>
+                    {/* <Badge variant="outline">{attendance.points || 1} Point</Badge> */}
 
                     {attendance.image && (
                       <div className="rounded-md overflow-hidden w-full max-w-[200px]">
