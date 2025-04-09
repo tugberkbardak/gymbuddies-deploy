@@ -180,7 +180,7 @@ export default async function ProfilePage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                {/* <Card>
                   <CardHeader className="py-4">
                     <CardTitle className="text-sm font-medium">Total Points</CardTitle>
                   </CardHeader>
@@ -188,7 +188,7 @@ export default async function ProfilePage() {
                     <div className="text-2xl font-bold">{userStats.totalPoints}</div>
                     <p className="text-xs text-muted-foreground">Points earned</p>
                   </CardContent>
-                </Card>
+                </Card> */}
               </div>
             </CardContent>
             <CardFooter>

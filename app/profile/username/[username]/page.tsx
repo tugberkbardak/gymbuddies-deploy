@@ -248,7 +248,7 @@ export default async function ProfileByUsernamePage({ params }: { params: { user
                       </CardContentUI>
                     </CardUI>
 
-                    <CardUI>
+                    {/* <CardUI>
                       <CardHeader className="py-4">
                         <CardTitle className="text-sm font-medium">Total Points</CardTitle>
                       </CardHeader>
@@ -256,7 +256,7 @@ export default async function ProfileByUsernamePage({ params }: { params: { user
                         <div className="text-2xl font-bold">{userStats.totalPoints}</div>
                         <p className="text-xs text-muted-foreground">Points earned</p>
                       </CardContentUI>
-                    </CardUI>
+                    </CardUI> */}
                   </>
                 )}
               </div>

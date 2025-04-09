@@ -217,7 +217,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   friendCount={friendIds.length - 1} // Subtract 1 because friendIds includes the user
                 />
 
-                <Card>
+                {/* <Card>
                   <CardHeader className="py-4">
                     <CardTitle className="text-sm font-medium">Total Points</CardTitle>
                   </CardHeader>
@@ -225,7 +225,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     <div className="text-2xl font-bold">{userStats.totalPoints}</div>
                     <p className="text-xs text-muted-foreground">Points earned</p>
                   </CardContent>
-                </Card>
+                </Card> */}
 
                 <Card>
                   <CardHeader className="py-4">
