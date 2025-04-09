@@ -81,8 +81,9 @@ export function GroupsTab({ isPremium = false, userHasPremium = false }: GroupsT
             <div className="space-y-3">
               <Badge className="mx-auto py-1.5 px-3 text-sm flex justify-center w-fit">Coming Soon!</Badge>
               <p className="text-sm text-muted-foreground text-center">
-                Premium subscription plans are currently in development and will be available soon. Stay tuned for
-                updates!
+                Premium is currently in development and will be available soon. 
+                Do not worry, it will be free to use, but only for dedicated gym lovers!
+                Stay tuned for updates! 
               </p>
             </div>
           </div>
