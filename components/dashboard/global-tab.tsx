@@ -5,9 +5,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import Link from "next/link"
-import { Loader2, MapPin, Calendar, Building2, ExternalLink } from "lucide-react"
+import { Loader2, MapPin, Calendar, Building2, ExternalLink, Trophy, Crown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function GlobalTab() {
   const [attendances, setAttendances] = useState([])
@@ -18,6 +19,11 @@ export function GlobalTab() {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const observer = useRef(null)
   const lastAttendanceRef = useRef(null)
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
+  const [leaderboardUsers, setLeaderboardUsers] = useState([])
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false)
+  // Add a new state variable to track top users' IDs
+  const [topUserIds, setTopUserIds] = useState<string[]>([])
 
   const fetchAttendances = async (pageNum = 1, append = false) => {
     try {
@@ -52,13 +58,53 @@ export function GlobalTab() {
     }
   }
 
+  // Fetch leaderboard data
+  // Modify the fetchLeaderboard function to also set the top user IDs
+  const fetchLeaderboard = async () => {
+    try {
+      setIsLoadingLeaderboard(true)
+      const response = await fetch("/api/users/leaderboard")
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch leaderboard: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
+      // Check if data is an array before setting it
+      if (Array.isArray(data)) {
+        setLeaderboardUsers(data)
+
+        // Extract the IDs of the top 10 users (or fewer if less than 10)
+        const topIds = data.slice(0, 10).map((user) => user._id)
+        setTopUserIds(topIds)
+      } else {
+        console.error("Unexpected leaderboard data format:", data)
+        setLeaderboardUsers([])
+        setTopUserIds([])
+      }
+    } catch (err) {
+      console.error("Error fetching leaderboard:", err)
+      setLeaderboardUsers([]) // Set empty array on error
+      setTopUserIds([])
+    } finally {
+      setIsLoadingLeaderboard(false)
+    }
+  }
+
   // Initial load
   useEffect(() => {
     fetchAttendances()
   }, [])
 
-  // Add an event listener to refresh the data when visibility changes
+  // Fetch leaderboard when it's shown
+  useEffect(() => {
+    if (showLeaderboard) {
+      fetchLeaderboard()
+    }
+  }, [showLeaderboard])
 
+  // Add an event listener to refresh the data when visibility changes
   useEffect(() => {
     // Function to handle visibility changes
     const handleVisibilityChange = () => {
@@ -136,14 +182,95 @@ export function GlobalTab() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Global Activity</h2>
-        <Button variant="outline" size="sm">
-          Live Updates
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowLeaderboard(!showLeaderboard)}
+            variant="outline"
+            className="border-[#40E0D0] text-[#40E0D0] hover:bg-[#40E0D0]/10 hover:text-[#40E0D0]"
+          >
+            <Trophy className="mr-2 h-4 w-4" />
+            {showLeaderboard ? "Hide Leaderboard" : "Show Leaderboard"}
+          </Button>
+          <Button variant="outline" size="sm">
+            Live Updates
+          </Button>
+        </div>
       </div>
 
       <p className="text-muted-foreground">
         See gym attendance from GymBuddies users around the world. Get inspired by the global community!
       </p>
+
+      {/* Global Leaderboard */}
+      {showLeaderboard && (
+        <Card className="border-[#40E0D0]/20">
+          <CardHeader className="bg-[#40E0D0]/10">
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-[#40E0D0]" />
+              Global Leaderboard
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {isLoadingLeaderboard ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-[#40E0D0]" />
+              </div>
+            ) : leaderboardUsers.length > 0 ? (
+              <div className="space-y-4">
+                {leaderboardUsers.map((user, index) => (
+                  <div
+                    key={user._id}
+                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-[#40E0D0]/5 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-6 h-6 flex items-center justify-center rounded-full 
+                        ${
+                          index === 0
+                            ? "bg-yellow-500"
+                            : index === 1
+                              ? "bg-gray-400"
+                              : index === 2
+                                ? "bg-amber-700"
+                                : "bg-[#40E0D0]/20"
+                        } 
+                        text-white font-bold text-xs`}
+                      >
+                        {index + 1}
+                      </div>
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.profileImage || user.profileImageUrl} alt={user.username} />
+                        <AvatarFallback>{user.username?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <Link
+                          href={`/profile/username/${user.username}`}
+                          className="font-medium flex items-center gap-1 hover:text-[#40E0D0] hover:underline"
+                        >
+                          {user.firstName} {user.lastName}
+                          {index < 10 && <Crown className="h-3 w-3 text-[#40E0D0]" />}
+                        </Link>
+                        <p className="text-xs text-muted-foreground">@{user.username}</p>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <Trophy className="h-3 w-3 text-[#40E0D0]" />
+                          <span className="font-medium">{user.currentStreak || 0} week streak</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Badge className="bg-[#40E0D0] text-black">{user.attendanceCount} check-ins</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">No leaderboard data available.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {attendances.length === 0 ? (
         <div className="text-center py-8">
@@ -171,14 +298,17 @@ export function GlobalTab() {
                       </AvatarFallback>
                     </Avatar>
                   </Link>
+                  {/* Modify the attendance display section to check if the user is in the top 10 */}
+                  {/* Find the section where attendance user info is displayed and update it: */}
                   <div className="flex-1">
                     <Link
                       href={`/profile/username/${attendance.user?.username || ""}`}
-                      className="font-medium hover:underline"
+                      className="font-medium flex items-center gap-1 hover:text-[#40E0D0] hover:underline"
                     >
                       {attendance.user?.firstName} {attendance.user?.lastName}
+                      {topUserIds.includes(attendance.user?._id) && <Crown className="h-3 w-3 text-[#40E0D0]" />}
                     </Link>
-                    <p className="text-sm text-muted-foreground">@{attendance.user?.username}</p>
+                    <p className="text-xs text-muted-foreground">@{attendance.user?.username}</p>
                   </div>
                   <Badge variant="outline" className="md:hidden">
                     {attendance.points || 1} Point
@@ -281,4 +411,3 @@ export function GlobalTab() {
     </div>
   )
 }
-
