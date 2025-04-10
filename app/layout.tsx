@@ -30,9 +30,9 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <head>
-          <link rel="shortcut icon" href="/favicon.ico" />
-          <link rel="icon" href="/favicon.ico" sizes="any" />
-          <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+          <link rel="shortcut icon" href="/logo1.png" />
+          <link rel="icon" href="/logo2.png" sizes="any" />
+          <link rel="icon" href="/logo2.png" type="image/svg+xml" />
           <link rel="apple-touch-icon" href="/logo1.png" />
         </head>
         <body className={`${inter.className} bg-black text-white`}>
