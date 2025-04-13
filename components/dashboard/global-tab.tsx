@@ -256,7 +256,7 @@ export function GlobalTab() {
                       </div>
                       <div className="mt-2">
                         <Badge className="bg-[#40E0D0] text-black whitespace-nowrap text-xs px-2 py-1">
-                          {user.attendanceCount} check-ins
+                          {user.attendanceCount} attendances
                         </Badge>
                       </div>
                     </div>
