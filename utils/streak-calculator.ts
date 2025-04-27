@@ -13,30 +13,24 @@ export function calculateStreak(
   currentStreak = 0,
   isCurrentWeekComplete = false,
 ): number {
+  // Only update the streak once the week is complete
+  if (!isCurrentWeekComplete) {
+    return currentStreak
+  }
+
   // User needs at least 3 attendances this week to maintain/start a streak
   const hasThreeAttendancesThisWeek = currentWeekAttendances >= 3
 
   if (hasThreeAttendancesThisWeek) {
     if (hadStreakLastWeek) {
-      // If they had a streak last week (3+ attendances) and qualified this week,
-      // increment their streak count
+      // Continue the streak
       return currentStreak + 1
     } else {
-      // If they didn't have a streak last week but qualified this week,
-      // start a new 1-week streak
+      // Start a new streak
       return 1
     }
   } else {
-    // If they don't have 3+ attendances this week
-    if (isCurrentWeekComplete || !hadStreakLastWeek) {
-      // If the current week is complete OR they didn't have a streak last week,
-      // they have no streak
-      return 0
-    } else {
-      // If the current week is not complete AND they had a streak last week,
-      // we'll check if they had a streak in the previous week
-      return hadStreakLastWeek ? currentStreak : 0
-    }
+    // Didn't meet 3 attendances, streak breaks
+    return 0
   }
 }
-
