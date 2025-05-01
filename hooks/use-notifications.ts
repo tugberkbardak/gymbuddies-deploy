@@ -19,6 +19,13 @@ const CURRENT_NOTIFICATIONS: Notification[] = [
       "We've updated the bottom navigation bar and added a new 'Find Buddy' tab to help you connect with gym partners.",
     date: "2025-03-24T00:00:00Z",
   },
+  {
+    id: "profile-weight-update-2025",
+    title: "Weight Tracking Feature!",
+    description:
+      "We've added a new feature that now you can track your weight, set a goal and see your progress. Go to the profile page and scroll down to check it!",
+    date: "2025-05-01T00:00:00Z",
+  },
   // Add future notifications here
 ]
 
