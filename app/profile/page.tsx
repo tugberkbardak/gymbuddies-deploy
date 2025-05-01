@@ -20,14 +20,11 @@ import WeightGraph from "@/components/profile/weight-graph"
 import AddWeightForm from "@/components/profile/add-weight-form"
 
 export default async function ProfilePage() {
-  // Use Clerk to get the currently signed-in user
   const user = await currentUser()
   if (!user) redirect("/sign-in")
 
-  // Fetch attendance heatmap data
   const attendanceHeatmapData = await getUserAttendanceHeatmap()
 
-  // Connect to MongoDB and fetch or create the user record
   await dbConnect()
   let dbUser = await User.findOne({ clerkId: user.id })
   if (!dbUser) {
@@ -38,30 +35,25 @@ export default async function ProfilePage() {
       firstName:       user.firstName || "",
       lastName:        user.lastName || "",
       profileImageUrl: user.imageUrl || "",
-      // other fields use schema defaults via timestamps, etc.
     })
     await newUser.save()
-    console.log("Created new user in database:", newUser._id)
     redirect("/dashboard")
   }
 
-  // Get latest weight entries
   const weightEntries = await WeightEntry.find({ user: dbUser._id })
     .sort({ date: -1 })
     .limit(10)
   const weightEntriesPlain = weightEntries.map((entry) => ({
-    _id:   entry._id.toString(),
+    _id:    entry._id.toString(),
     weight: entry.weight,
-    date:  entry.date.toISOString(),
-    notes: entry.notes,
+    date:   entry.date.toISOString(),
+    notes:  entry.notes,
   }))
 
-  // User preferences
   const weightPreferences = dbUser.weightPreferences || { unit: "kg" }
   const defaultGym = dbUser.fitnessProfile?.preferences ||
     (user.unsafeMetadata as any)?.defaultGym || null
 
-  // Compute friend-based ranking
   const friendships = await Friendship.find({
     $or: [
       { user: dbUser._id, status: "accepted" },
@@ -77,7 +69,6 @@ export default async function ProfilePage() {
   const userRank =
     usersWithPoints.findIndex((u) => u._id.equals(dbUser._id)) + 1
 
-  // Prepare stats
   const userStats = {
     totalAttendance: dbUser.totalAttendance || 0,
     currentStreak:   dbUser.currentStreak || 0,
@@ -92,13 +83,11 @@ export default async function ProfilePage() {
       : "Unknown",
   }
 
-  // Final avatar URL: DB first, then Clerk
   const avatarUrl = dbUser.profileImageUrl || user.imageUrl || ""
 
   return (
     <div className="min-h-screen flex flex-col">
       <DashboardHeader />
-
       <main className="flex-1 container py-6">
         <div className="flex items-center gap-2 mb-6">
           <Link href="/dashboard">
@@ -108,9 +97,7 @@ export default async function ProfilePage() {
             </Button>
           </Link>
         </div>
-
         <div className="grid gap-6">
-          {/* Profile Card */}
           <Card>
             <CardHeader>
               <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
@@ -132,13 +119,17 @@ export default async function ProfilePage() {
                     <CardDescription>@{dbUser.username}</CardDescription>
                   </div>
                 </div>
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  Joined {userStats.joinedDate}
-                </Badge>
+                <div className="flex flex-wrap gap-2">
+                  <Badge
+                    variant="outline"
+                    className="flex items-center gap-1 py-0.5 px-2 text-xs text-muted-foreground"
+                  >
+                    <Calendar className="h-3 w-3" />
+                    Joined {userStats.joinedDate}
+                  </Badge>
+                </div>
               </div>
             </CardHeader>
-
             <CardContent>
               <ProfileInfoDisplay
                 bio={dbUser.fitnessProfile?.goals ||
@@ -147,9 +138,7 @@ export default async function ProfilePage() {
                 userId={user.id}
                 isOwnProfile
               />
-
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-                {/* Total Attendance */}
                 <Card>
                   <CardHeader className="py-4">
                     <CardTitle className="text-sm font-medium">
@@ -165,15 +154,11 @@ export default async function ProfilePage() {
                     </p>
                   </CardContent>
                 </Card>
-
-                {/* Buddies Card */}
                 <BuddiesCard
                   userId={user.id}
                   username={dbUser.username}
                   friendCount={friendIds.length - 1}
                 />
-
-                {/* Current Streak */}
                 <Card>
                   <CardHeader className="py-4">
                     <CardTitle className="text-sm font-medium">
@@ -194,13 +179,10 @@ export default async function ProfilePage() {
                 </Card>
               </div>
             </CardContent>
-
             <CardFooter>
               <ShareProfileButton username={dbUser.username} />
             </CardFooter>
           </Card>
-
-          {/* Attendance Heatmap */}
           <Card className="overflow-hidden">
             <CardHeader>
               <CardTitle>Gym Attendance</CardTitle>
@@ -212,8 +194,6 @@ export default async function ProfilePage() {
               <AttendanceHeatmap attendanceData={attendanceHeatmapData} />
             </CardContent>
           </Card>
-
-          {/* Weight Tracking */}
           <Card>
             <CardHeader>
               <CardTitle>Weight Tracking</CardTitle>
@@ -223,7 +203,6 @@ export default async function ProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Weight History */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Weight History</h3>
                   {weightEntriesPlain.length > 0 ? (
@@ -239,7 +218,6 @@ export default async function ProfilePage() {
                       </p>
                     </div>
                   )}
-
                   {weightEntriesPlain.length > 0 && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-muted/30 p-4 rounded-md">
@@ -250,7 +228,6 @@ export default async function ProfilePage() {
                           {weightEntriesPlain[0].weight} {weightPreferences.unit}
                         </p>
                       </div>
-
                       {weightEntriesPlain.length > 1 && (
                         <div className="bg-muted/30 p-4 rounded-md">
                           <p className="text-sm text-muted-foreground">
@@ -267,17 +244,13 @@ export default async function ProfilePage() {
                                 : ""
                             }`}
                           >
-                            {(weightEntriesPlain[0].weight -
-                              weightEntriesPlain[1].weight)
-                              .toFixed(1)}{' '}{weightPreferences.unit}
+                            {(weightEntriesPlain[0].weight - weightEntriesPlain[1].weight).toFixed(1)} {weightPreferences.unit}
                           </p>
                         </div>
                       )}
                     </div>
                   )}
                 </div>
-
-                {/* Add Weight Form */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Add New Entry</h3>
                   <AddWeightForm unit={weightPreferences.unit} />
