@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ChevronLeft, Calendar } from "lucide-react"
+import { ChevronLeft, Calendar, ArrowRight } from "lucide-react"
 import { redirect } from "next/navigation"
 import AttendanceHeatmap from "@/components/profile/attendance-heatmap"
 import { getUserAttendanceHeatmap } from "@/actions/attendance-actions"
@@ -41,7 +41,7 @@ export default async function ProfilePage() {
   }
 
   const weightEntries = await WeightEntry.find({ user: dbUser._id })
-    .sort({ date: -1 })
+    .sort({ date: 1 })
     .limit(10)
   const weightEntriesPlain = weightEntries.map((entry) => ({
     _id:    entry._id.toString(),
@@ -196,10 +196,20 @@ export default async function ProfilePage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Weight Tracking</CardTitle>
-              <CardDescription>
-                Monitor and update your weight progress
-              </CardDescription>
+              <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+                <div>
+                  <CardTitle>Weight Tracking</CardTitle>
+                  <CardDescription>
+                    Monitor and update your weight progress
+                  </CardDescription>
+                </div>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/profile/weight">
+                    View Full History
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -237,10 +247,10 @@ export default async function ProfilePage() {
                             className={`text-xl font-bold ${
                               weightEntriesPlain[0].weight >
                                 weightEntriesPlain[1].weight
-                                ? "text-red-500"
+                                ? "text-[#20B2AA]"
                                 : weightEntriesPlain[0].weight <
                                   weightEntriesPlain[1].weight
-                                ? "text-green-500"
+                                ? "text-[#40E0D0]"
                                 : ""
                             }`}
                           >

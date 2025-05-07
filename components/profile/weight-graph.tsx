@@ -17,9 +17,11 @@ interface WeightGraphProps {
   entries: WeightEntry[]
   unit: "kg" | "lbs"
   goalWeight?: number
+  showTrendline?: boolean
+  height?: number
 }
 
-export default function WeightGraph({ entries, unit, goalWeight }: WeightGraphProps) {
+export default function WeightGraph({ entries, unit, goalWeight, showTrendline = false, height = 300 }: WeightGraphProps) {
   const [data, setData] = useState<any[]>([])
   const [minWeight, setMinWeight] = useState<number>(0)
   const [maxWeight, setMaxWeight] = useState<number>(100)
@@ -55,6 +57,22 @@ export default function WeightGraph({ entries, unit, goalWeight }: WeightGraphPr
       setMaxWeight(max)
     }
   }, [entries, unit, goalWeight])
+
+  // Calculate trendline data if showTrendline is true
+  const trendData = showTrendline && data.length >= 2 ? (() => {
+    const firstPoint = data[0]
+    const lastPoint = data[data.length - 1]
+    const x1 = new Date(firstPoint.date).getTime()
+    const x2 = new Date(lastPoint.date).getTime()
+    const y1 = firstPoint.weight
+    const y2 = lastPoint.weight
+    const slope = (y2 - y1) / (x2 - x1)
+
+    return data.map(point => ({
+      date: point.date,
+      trend: y1 + slope * (new Date(point.date).getTime() - x1)
+    }))
+  })() : []
 
   // Custom tooltip for the chart
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -99,20 +117,36 @@ export default function WeightGraph({ entries, unit, goalWeight }: WeightGraphPr
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px] w-full overflow-x-auto">
+        <div className={`h-[${height}px] w-full overflow-x-auto`}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={data}
               margin={{
-                top: 5,
+                top: 20,
                 right: 30,
                 left: 20,
-                bottom: 5,
+                bottom: 20,
               }}
             >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tickFormatter={(date) => format(new Date(date), "MMM d")} minTickGap={30} />
-              <YAxis domain={[minWeight, maxWeight]} />
+              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+              <XAxis 
+                dataKey="date" 
+                tickFormatter={(date) => format(new Date(date), "MMM d")} 
+                minTickGap={30}
+                tick={{ fontSize: 12 }}
+                tickMargin={10}
+              />
+              <YAxis 
+                domain={[minWeight, maxWeight]} 
+                tick={{ fontSize: 12 }}
+                tickMargin={10}
+                label={{ 
+                  value: `Weight (${unit})`, 
+                  angle: -90, 
+                  position: 'insideLeft',
+                  style: { textAnchor: 'middle' }
+                }}
+              />
               <Tooltip content={<CustomTooltip />} />
               <Line
                 type="monotone"
@@ -122,11 +156,23 @@ export default function WeightGraph({ entries, unit, goalWeight }: WeightGraphPr
                 dot={{ r: 4, fill: "#40E0D0", strokeWidth: 0 }}
                 activeDot={{ r: 6, fill: "#40E0D0", stroke: "#fff", strokeWidth: 2 }}
               />
+              {showTrendline && trendData.length > 0 && (
+                <Line
+                  type="monotone"
+                  data={trendData}
+                  dataKey="trend"
+                  stroke="#20B2AA"
+                  strokeWidth={1}
+                  strokeDasharray="5 5"
+                  dot={false}
+                  name="Trend"
+                />
+              )}
               {goalWeight && (
                 <Line
                   type="monotone"
                   dataKey={() => convertWeight(goalWeight)}
-                  stroke="#FF6B6B"
+                  stroke="#20B2AA"
                   strokeWidth={1}
                   strokeDasharray="5 5"
                   dot={false}
@@ -138,7 +184,7 @@ export default function WeightGraph({ entries, unit, goalWeight }: WeightGraphPr
         </div>
         {goalWeight && (
           <div className="mt-2 text-xs text-center">
-            <span className="inline-block w-3 h-0.5 bg-[#FF6B6B] mr-1"></span>
+            <span className="inline-block w-3 h-0.5 bg-[#20B2AA] mr-1"></span>
             <span className="text-muted-foreground">
               Goal Weight: {convertWeight(goalWeight).toFixed(1)} {unit}
             </span>

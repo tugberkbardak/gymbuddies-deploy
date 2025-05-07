@@ -16,11 +16,30 @@ import WeightEntriesTable from "@/components/profile/weight-entries-table"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import WeeklyAverageChart from "@/components/profile/weekly-average-chart"
 
+interface WeightEntry {
+  _id: string
+  weight: number
+  date: string
+  notes?: string
+}
+
+interface WeightStats {
+  currentWeight: number
+  lowestWeight: number
+  highestWeight: number
+  averageWeight: number
+  totalChange: number
+  changePerWeek: number
+  change30Days: number | null
+  totalDays: number
+  unit: string
+}
+
 // Helper function to calculate statistics
-function calculateStats(entries, unit = "kg") {
+function calculateStats(entries: WeightEntry[], unit = "kg"): WeightStats | null {
   if (!entries || entries.length === 0) return null
 
-  // Sort entries by date (newest first)
+  // Sort entries by date (newest first for stats)
   const sortedEntries = [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   // Calculate statistics
@@ -66,10 +85,18 @@ function calculateStats(entries, unit = "kg") {
 }
 
 // Helper function to group entries by week
-function groupEntriesByWeek(entries) {
+function groupEntriesByWeek(entries: WeightEntry[]) {
   if (!entries || entries.length === 0) return []
 
-  const weeklyData = {}
+  interface WeeklyData {
+    [key: string]: {
+      week: string
+      weights: number[]
+      count: number
+    }
+  }
+
+  const weeklyData: WeeklyData = {}
 
   entries.forEach((entry) => {
     const date = new Date(entry.date)
@@ -94,7 +121,7 @@ function groupEntriesByWeek(entries) {
   return Object.values(weeklyData)
     .map((week) => ({
       week: week.week,
-      average: week.weights.reduce((sum, weight) => sum + weight, 0) / week.weights.length,
+      average: week.weights.reduce((sum: number, weight: number) => sum + weight, 0) / week.weights.length,
       count: week.count,
     }))
     .sort((a, b) => new Date(a.week).getTime() - new Date(b.week).getTime())
@@ -114,7 +141,7 @@ async function getWeightData() {
   }
 
   // Get all weight entries for the user, sorted by date
-  const weightEntries = await WeightEntry.find({ user: dbUser._id }).sort({ date: -1 })
+  const weightEntries = await WeightEntry.find({ user: dbUser._id }).sort({ date: 1 })
 
   // Convert Mongoose documents to plain objects
   const weightEntriesPlain = weightEntries.map((entry) => {
@@ -156,7 +183,7 @@ function WeightContent() {
         </div>
       </div>
 
-      {weightEntries.length > 0 ? (
+      {weightEntries.length > 0 && stats ? (
         <>
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -169,7 +196,7 @@ function WeightContent() {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">
-                  {stats?.currentWeight} {stats?.unit}
+                  {stats.currentWeight} {stats.unit}
                 </p>
                 <p className="text-xs text-muted-foreground">Last recorded weight</p>
               </CardContent>
@@ -184,9 +211,9 @@ function WeightContent() {
               </CardHeader>
               <CardContent>
                 <p
-                  className={`text-2xl font-bold ${stats?.change30Days > 0 ? "text-red-500" : stats?.change30Days < 0 ? "text-green-500" : ""}`}
+                  className={`text-2xl font-bold ${stats.change30Days && stats.change30Days > 0 ? "text-[#20B2AA]" : stats.change30Days && stats.change30Days < 0 ? "text-[#40E0D0]" : ""}`}
                 >
-                  {stats?.change30Days !== null
+                  {stats.change30Days !== null
                     ? `${stats.change30Days > 0 ? "+" : ""}${stats.change30Days.toFixed(1)} ${stats.unit}`
                     : "N/A"}
                 </p>
@@ -197,21 +224,19 @@ function WeightContent() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  {stats?.changePerWeek > 0 ? (
-                    <TrendingUp className="h-4 w-4 text-red-500" />
+                  {stats.changePerWeek > 0 ? (
+                    <TrendingUp className="h-4 w-4 text-[#20B2AA]" />
                   ) : (
-                    <TrendingDown className="h-4 w-4 text-green-500" />
+                    <TrendingDown className="h-4 w-4 text-[#40E0D0]" />
                   )}
                   Weekly Trend
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p
-                  className={`text-2xl font-bold ${stats?.changePerWeek > 0 ? "text-red-500" : stats?.changePerWeek < 0 ? "text-green-500" : ""}`}
+                  className={`text-2xl font-bold ${stats.changePerWeek > 0 ? "text-[#20B2AA]" : stats.changePerWeek < 0 ? "text-[#40E0D0]" : ""}`}
                 >
-                  {stats
-                    ? `${stats.changePerWeek > 0 ? "+" : ""}${stats.changePerWeek.toFixed(1)} ${stats.unit}`
-                    : "N/A"}
+                  {`${stats.changePerWeek > 0 ? "+" : ""}${stats.changePerWeek.toFixed(1)} ${stats.unit}`}
                 </p>
                 <p className="text-xs text-muted-foreground">Average change per week</p>
               </CardContent>
@@ -226,7 +251,7 @@ function WeightContent() {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">
-                  {stats?.lowestWeight} - {stats?.highestWeight} {stats?.unit}
+                  {stats.lowestWeight} - {stats.highestWeight} {stats.unit}
                 </p>
                 <p className="text-xs text-muted-foreground">Min-max recorded weight</p>
               </CardContent>
