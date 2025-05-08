@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import { format, parseISO } from "date-fns"
 
 interface WeeklyAverageChartProps {
@@ -9,6 +9,9 @@ interface WeeklyAverageChartProps {
     week: string
     average: number
     count: number
+    min?: number
+    max?: number
+    formattedWeek?: string
   }[]
   unit: string
 }
@@ -17,10 +20,14 @@ interface TooltipProps {
   active?: boolean
   payload?: Array<{
     value: number
+    name: string
     payload: {
       week: string
       average: number
       count: number
+      min?: number
+      max?: number
+      formattedWeek?: string
     }
   }>
   label?: string
@@ -35,17 +42,22 @@ export default function WeeklyAverageChart({ data, unit }: WeeklyAverageChartPro
       ...item,
       formattedWeek: format(parseISO(item.week), "MMM d"),
       average: Number(item.average.toFixed(1)),
+      min: item.min ? Number(item.min.toFixed(1)) : undefined,
+      max: item.max ? Number(item.max.toFixed(1)) : undefined,
     }))
     setChartData(formattedData)
   }, [data])
 
   const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
+      const data = payload[0].payload
       return (
         <div className="bg-background border rounded-md shadow-sm p-2 text-sm">
           <p className="font-medium">{`Week of ${label}`}</p>
-          <p>{`Average: ${payload[0].value} ${unit}`}</p>
-          <p>{`Entries: ${payload[0].payload.count}`}</p>
+          <p>{`Average: ${data.average} ${unit}`}</p>
+          {data.min !== undefined && <p>{`Min: ${data.min} ${unit}`}</p>}
+          {data.max !== undefined && <p>{`Max: ${data.max} ${unit}`}</p>}
+          <p>{`Entries: ${data.count}`}</p>
         </div>
       )
     }
@@ -54,7 +66,7 @@ export default function WeeklyAverageChart({ data, unit }: WeeklyAverageChartPro
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart
+      <LineChart
         data={chartData}
         margin={{
           top: 20,
@@ -83,13 +95,29 @@ export default function WeeklyAverageChart({ data, unit }: WeeklyAverageChartPro
           tickMargin={10}
         />
         <Tooltip content={<CustomTooltip />} />
-        <Bar 
-          dataKey="average" 
-          fill="#40E0D0" 
-          radius={[4, 4, 0, 0]}
-          activeBar={{ fill: "#20B2AA" }}
+        <Line
+          type="monotone"
+          dataKey="average"
+          stroke="#40E0D0"
+          strokeWidth={2}
+          dot={{ r: 4, fill: "#40E0D0", strokeWidth: 0 }}
+          activeDot={{ r: 6, fill: "#40E0D0", stroke: "#fff", strokeWidth: 2 }}
         />
-      </BarChart>
+        {chartData.map((entry, index) => (
+          entry.min !== undefined && entry.max !== undefined && (
+            <ReferenceLine
+              key={`min-max-${index}`}
+              x={entry.formattedWeek}
+              segment={[
+                { x: entry.formattedWeek, y: entry.min },
+                { x: entry.formattedWeek, y: entry.max }
+              ]}
+              stroke="#20B2AA"
+              strokeWidth={2}
+            />
+          )
+        ))}
+      </LineChart>
     </ResponsiveContainer>
   )
 }

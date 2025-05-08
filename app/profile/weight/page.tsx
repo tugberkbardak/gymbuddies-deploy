@@ -122,6 +122,8 @@ function groupEntriesByWeek(entries: WeightEntry[]) {
     .map((week) => ({
       week: week.week,
       average: week.weights.reduce((sum: number, weight: number) => sum + weight, 0) / week.weights.length,
+      min: Math.min(...week.weights),
+      max: Math.max(...week.weights),
       count: week.count,
     }))
     .sort((a, b) => new Date(a.week).getTime() - new Date(b.week).getTime())
