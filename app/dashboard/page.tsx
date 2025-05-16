@@ -56,7 +56,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
   return (
     <>
       <DashboardAutoRefresh />
-      <div className="min-h-screen flex flex-col">
+      <div className="dashboard-background min-h-screen flex flex-col">
         <DashboardHeader />
 
         <main className="flex-1 container py-6">

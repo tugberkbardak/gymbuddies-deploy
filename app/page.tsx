@@ -31,6 +31,11 @@ export default function LandingPage() {
     router.push("/dashboard")
   }
 
+  useEffect(() => {
+    document.body.classList.add("dashboard-bg");
+    return () => document.body.classList.remove("dashboard-bg");
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
       {/* Header */}

@@ -7,18 +7,19 @@ import { UserButton } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import type React from "react"
 
 export function DashboardHeader() {
   const { user, isLoaded } = useUser()
   const router = useRouter()
 
-  const handleProfileClick = (e) => {
+  const handleProfileClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
     router.push("/profile")
   }
 
   return (
-    <header className="w-full py-4 px-6 flex justify-between items-center border-b bg-background sticky top-0 z-10">
+    <header className="w-full py-4 px-6 flex justify-between items-center border-b bg-background/80 backdrop-blur-md sticky top-0 z-10">
       <div className="flex items-center gap-2">
         <Link href="/" className="flex items-center gap-2">
           <Image src="/logo2.svg" alt="GymBuddies Logo" width={32} height={32} />
