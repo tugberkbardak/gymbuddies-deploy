@@ -277,70 +277,81 @@ export function GlobalTab() {
           <p className="text-muted-foreground">No attendance records found.</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {attendances.map((attendance, index) => {
-            const isLastItem = index === attendances.length - 1
-            const formattedDate = format(new Date(attendance.date), "dd.MM.yyyy HH:mm:ss")
+        <div className="space-y-6">
+          {Object.entries(
+            attendances.reduce((acc, attendance) => {
+              const date = format(new Date(attendance.date), "yyyy-MM-dd")
+              if (!acc[date]) {
+                acc[date] = []
+              }
+              acc[date].push(attendance)
+              return acc
+            }, {})
+          ).map(([date, dateAttendances]) => (
+            <div key={date} className="space-y-4">
+              <div className="flex items-center gap-4">
+                <h3 className="text-lg font-semibold text-muted-foreground">
+                  {format(new Date(date), "MMMM d, yyyy")}
+                </h3>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              
+              {dateAttendances.map((attendance, index) => {
+                const isLastItem = index === dateAttendances.length - 1
+                const formattedTime = format(new Date(attendance.date), "HH:mm:ss")
 
-            return (
-              <div
-                key={attendance._id}
-                ref={isLastItem ? lastAttendanceCallback : null}
-                className="bg-card rounded-lg p-4 border"
-              >
-                <div className="flex items-start gap-3 mb-3">
-                  <Link href={`/profile/username/${attendance.user?.username || ""}`} className="shrink-0">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={attendance.user?.profileImage} alt={attendance.user?.username} />
-                      <AvatarFallback>
-                        {attendance.user?.firstName?.charAt(0) || ""}
-                        {attendance.user?.lastName?.charAt(0) || ""}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Link>
-                  {/* Modify the attendance display section to check if the user is in the top 10 */}
-                  {/* Find the section where attendance user info is displayed and update it: */}
-                  <div className="flex-1 min-w-0">
-                    <Link
-                      href={`/profile/username/${attendance.user?.username || ""}`}
-                      className="font-medium flex items-center gap-1 hover:text-[#40E0D0] hover:underline truncate"
-                    >
-                      {attendance.user?.firstName} {attendance.user?.lastName}
-                      {topUserIds.includes(attendance.user?._id) && (
-                        <Crown className="h-3 w-3 text-[#40E0D0] flex-shrink-0" fill="currentColor" />
-                      )}
-                    </Link>
-                    <p className="text-xs text-muted-foreground truncate">@{attendance.user?.username}</p>
-                  </div>
-                  {/* <Badge variant="outline" className="md:hidden whitespace-nowrap text-xs ml-2">
-                    {attendance.points || 1} Point
-                  </Badge> */}
-                </div>
-
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{formattedDate}</span>
+                return (
+                  <div
+                    key={attendance._id}
+                    ref={isLastItem ? lastAttendanceCallback : null}
+                    className="bg-card rounded-lg p-4 border"
+                  >
+                    <div className="flex items-start gap-3 mb-3">
+                      <Link href={`/profile/username/${attendance.user?.username || ""}`} className="shrink-0">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={attendance.user?.profileImage} alt={attendance.user?.username} />
+                          <AvatarFallback>
+                            {attendance.user?.firstName?.charAt(0) || ""}
+                            {attendance.user?.lastName?.charAt(0) || ""}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
+                      <div className="flex-1 min-w-0">
+                        <Link
+                          href={`/profile/username/${attendance.user?.username || ""}`}
+                          className="font-medium flex items-center gap-1 hover:text-[#40E0D0] hover:underline truncate"
+                        >
+                          {attendance.user?.firstName} {attendance.user?.lastName}
+                          {topUserIds.includes(attendance.user?._id) && (
+                            <Crown className="h-3 w-3 text-[#40E0D0] flex-shrink-0" fill="currentColor" />
+                          )}
+                        </Link>
+                        <p className="text-xs text-muted-foreground truncate">@{attendance.user?.username}</p>
+                      </div>
                     </div>
 
-                    {attendance.gymName && (
-                      <div className="flex flex-col gap-1 text-sm">
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault()
-                            const locationElement = document.getElementById(`global-location-${attendance._id}`)
-                            if (locationElement) {
-                              locationElement.classList.toggle("hidden")
-                            }
-                          }}
-                          className="flex items-center gap-2 hover:text-primary transition-colors text-left"
-                        >
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <span>{attendance.gymName}</span>
-                        </button>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>{formattedTime}</span>
+                      </div>
 
-                        {attendance.location && (
+                      {attendance.gymName && (
+                        <div className="flex flex-col gap-1 text-sm">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault()
+                              const locationElement = document.getElementById(`global-location-${attendance._id}`)
+                              if (locationElement) {
+                                locationElement.classList.toggle("hidden")
+                              }
+                            }}
+                            className="flex items-center gap-2 hover:text-primary transition-colors text-left"
+                          >
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <span>{attendance.gymName}</span>
+                          </button>
+
                           <div id={`global-location-${attendance._id}`} className="hidden pl-6">
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <MapPin className="h-4 w-4" />
@@ -356,32 +367,26 @@ export function GlobalTab() {
                               </a>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    )}
+                        </div>
+                      )}
 
-                    {attendance.notes && <p className="text-sm mt-2">{attendance.notes}</p>}
+                      {attendance.notes && <p className="text-sm mt-2">{attendance.notes}</p>}
 
-                    {/* Mobile view for image */}
-                    {attendance.image && (
-                      <div className="mt-2 rounded-md overflow-hidden w-full md:hidden">
-                        <Image
-                          src={attendance.image || "/placeholder.svg"}
-                          alt="Gym attendance"
-                          width={800}
-                          height={450}
-                          className="w-full h-auto object-cover max-h-[300px]"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Desktop view for image and badge */}
-                  <div className="hidden md:flex md:flex-col md:items-end md:gap-4 md:ml-4 md:min-w-[200px]">
-                    {/* <Badge variant="outline">{attendance.points || 1} Point</Badge> */}
+                      {attendance.image && (
+                        <div className="mt-2 rounded-md overflow-hidden w-full md:hidden">
+                          <Image
+                            src={attendance.image || "/placeholder.svg"}
+                            alt="Gym attendance"
+                            width={800}
+                            height={450}
+                            className="w-full h-auto object-cover max-h-[300px]"
+                          />
+                        </div>
+                      )}
+                    </div>
 
                     {attendance.image && (
-                      <div className="rounded-md overflow-hidden w-full max-w-[200px]">
+                      <div className="hidden md:block rounded-md overflow-hidden w-full max-w-[200px]">
                         <Image
                           src={attendance.image || "/placeholder.svg"}
                           alt="Gym attendance"
@@ -392,10 +397,10 @@ export function GlobalTab() {
                       </div>
                     )}
                   </div>
-                </div>
-              </div>
-            )
-          })}
+                )
+              })}
+            </div>
+          ))}
 
           {isLoadingMore && (
             <div className="flex justify-center py-4">
