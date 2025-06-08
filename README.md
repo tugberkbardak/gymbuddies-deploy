@@ -8,6 +8,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge\&logo=typescript\&logoColor=white)
 ![shadcn/ui](https://img.shields.io/badge/shadcn/ui-000000?style=for-the-badge\&logo=shadcnui\&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge\&logo=tailwind-css\&logoColor=white)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0)
 
 **GymBuddies** is your go-to platform for tracking gym attendance and progress. Whether you're a fitness enthusiast or looking to build consistent habits, GymBuddies provides tools to track sessions, monitor weight goals, and connect with friends.
 
@@ -150,6 +151,7 @@ $ git commit -m "feat: added leaderboard component"
 
 ---
 
-## ✉️ License
+## ✉ License
 
-MIT License. See `LICENSE` file for details.
+This project is licensed under the GNU General Public License v3.0.
+See the LICENSE file for details.
