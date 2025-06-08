@@ -1,4 +1,35 @@
 import { SignUp } from "@clerk/nextjs"
+import { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Join GymBuddies - Create Your Free Fitness Tracking Account",
+  description: "Sign up for GymBuddies and start tracking your gym progress with friends. Join 1000+ fitness enthusiasts staying motivated through workout accountability partners.",
+  keywords: [
+    "gym buddy signup",
+    "fitness tracking registration",
+    "workout accountability partner",
+    "gym progress tracker account",
+    "fitness motivation app signup",
+    "join gym buddies",
+    "create fitness account",
+    "workout buddy registration"
+  ],
+  openGraph: {
+    title: "Join GymBuddies - Create Your Free Fitness Tracking Account",
+    description: "Sign up for GymBuddies and start tracking your gym progress with friends. Join 1000+ fitness enthusiasts staying motivated.",
+    url: "https://gymbuddies.net/sign-up",
+    siteName: "GymBuddies",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Join GymBuddies - Create Your Free Fitness Tracking Account",
+    description: "Sign up for GymBuddies and start tracking your gym progress with friends.",
+  },
+  alternates: {
+    canonical: "https://gymbuddies.net/sign-up",
+  },
+}
 
 export default function SignUpPage() {
   return (

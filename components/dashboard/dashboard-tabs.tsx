@@ -25,6 +25,7 @@ export function DashboardTabs({ defaultTab, pendingFriendRequestsCount, isPremiu
   const [activeTab, setActiveTab] = useState(defaultTab)
   const [visibleTab, setVisibleTab] = useState(defaultTab) // Tab that's actually visible/loaded
   const [isLoading, setIsLoading] = useState(false)
+  const [loadingTab, setLoadingTab] = useState<string | null>(null)
 
   // Define the tab order for navigation
   const tabOrder = ["attendance", "friends", "find-buddy", "global", "groups"]
@@ -34,18 +35,19 @@ export function DashboardTabs({ defaultTab, pendingFriendRequestsCount, isPremiu
     const tabFromUrl = searchParams.get("tab")
     if (tabFromUrl && tabOrder.includes(tabFromUrl)) {
       setActiveTab(tabFromUrl)
+      setLoadingTab(tabFromUrl) // Set loading state immediately
+      setIsLoading(true)
     }
   }, [searchParams, tabOrder])
 
   // Handle loading the tab content after the tab indicator has moved
   useEffect(() => {
     if (activeTab !== visibleTab) {
-      setIsLoading(true)
-
       // Use a short timeout to allow the tab indicator to move first
       const timer = setTimeout(() => {
         setVisibleTab(activeTab)
         setIsLoading(false)
+        setLoadingTab(null)
       }, 300) // Slightly shorter than the animation duration
 
       return () => clearTimeout(timer)
@@ -55,17 +57,18 @@ export function DashboardTabs({ defaultTab, pendingFriendRequestsCount, isPremiu
   // Render loading state
   const renderLoadingState = () => (
     <div className="flex flex-col items-center justify-center py-12 space-y-4">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <p className="text-muted-foreground">Loading...</p>
+      <div className="relative">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded-full" />
+      </div>
+      <p className="text-muted-foreground">
+        Loading {loadingTab ? loadingTab.charAt(0).toUpperCase() + loadingTab.slice(1) : ""}...
+      </p>
     </div>
   )
 
   // Render the appropriate tab content
   const renderTabContent = () => {
-    if (isLoading) {
-      return renderLoadingState()
-    }
-
     switch (visibleTab) {
       case "attendance":
         return (
@@ -110,9 +113,15 @@ export function DashboardTabs({ defaultTab, pendingFriendRequestsCount, isPremiu
     <div ref={containerRef} className="relative pb-16">
       <Tabs value={activeTab} className="w-full">
         <div className="relative overflow-hidden">
-          <div className={cn("transition-all duration-300 transform", isLoading ? "opacity-0" : "opacity-100")}>
-            {renderTabContent()}
-          </div>
+          {/* Tab content */}
+          <div className={cn("transition-all duration-300 transform", isLoading ? "opacity-0" : "opacity-100")}>{renderTabContent()}</div>
+
+          {/* Loading overlay */}
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              {renderLoadingState()}
+            </div>
+          )}
         </div>
       </Tabs>
     </div>

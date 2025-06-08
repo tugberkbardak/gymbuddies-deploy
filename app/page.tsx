@@ -107,19 +107,19 @@ export default function LandingPage() {
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex flex-col justify-center space-y-4">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                  Stay Motivated, <br />
-                  <span className="text-[#40E0D0]">Achieve Together</span>
+                  Find Your <span className="text-[#40E0D0]">Gym Buddy</span> & <br />
+                  <span className="text-[#40E0D0]">Track Progress Together</span>
                 </h1>
                 <p className="max-w-[600px] text-gray-300 md:text-xl">
-                  GymBuddies helps you track your gym attendance, connect with friends, and stay motivated through
-                  friendly competition.
+                  Connect with workout buddies, track your gym attendance together, and stay motivated through
+                  friendly competition. Build consistent fitness habits with accountability partners.
                 </p>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <SignedOut>
                     <div className="flex gap-2 flex-col sm:flex-row">
                       <SignUpButton mode="modal">
                         <button className="bg-[#40E0D0] text-black font-medium py-3 px-6 rounded-md flex items-center justify-center hover:bg-[#40E0D0]/90 transition-colors">
-                          Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                          Find Gym Buddies <ArrowRight className="ml-2 h-4 w-4" />
                         </button>
                       </SignUpButton>
                       <SignInButton mode="modal">
@@ -157,7 +157,7 @@ export default function LandingPage() {
                     ))}
                   </div>
                   <div className="text-gray-300">
-                    Joined by <span className="font-medium text-white">1,000+</span> fitness enthusiasts
+                    Joined by <span className="font-medium text-white">1,000+</span> fitness enthusiasts and gym buddies
                   </div>
                 </div>
               </div>
@@ -165,7 +165,7 @@ export default function LandingPage() {
                 <div className="relative w-full max-w-md mx-auto">
                   <Image
                     src="/gymimage.png"
-                    alt="Gym workout"
+                    alt="Gym buddies working out together - track your fitness progress with workout partners"
                     width={600}
                     height={600}
                     className="rounded-lg shadow-xl"
@@ -184,44 +184,44 @@ export default function LandingPage() {
               <div className="space-y-2">
                 <p className="text-[#40E0D0] text-sm md:text-base">Features</p>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  Everything You Need to Stay on Track
+                  Track With Your Gym Buddy - Everything You Need
                 </h2>
                 <p className="max-w-[900px] text-gray-300 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  GymBuddies provides all the tools you need to track your progress, connect with friends, and stay
-                  motivated.
+                  GymBuddies provides all the tools you need to track your progress with workout partners, connect with gym buddies, and stay
+                  motivated together.
                 </p>
               </div>
             </div>
             <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mt-12">
               <FeatureCard
                 icon={<Calendar className="h-10 w-10 text-[#40E0D0]" />}
-                title="Attendance Tracking"
-                description="Easily record your gym sessions and build consistent habits with our intuitive tracking system."
+                title="Gym Attendance Tracking"
+                description="Track your gym sessions with your workout buddy and build consistent habits together with our intuitive tracking system."
               />
               <FeatureCard
                 icon={<Users className="h-10 w-10 text-[#40E0D0]" />}
-                title="Connect with Friends"
-                description="Add gym buddies, see their progress, and motivate each other to reach your fitness goals."
+                title="Connect with Gym Buddies"
+                description="Find and add gym buddies, see their progress, and motivate each other to reach your fitness goals together."
               />
               <FeatureCard
                 icon={<Trophy className="h-10 w-10 text-[#40E0D0]" />}
-                title="Streaks & Achievements"
-                description="Build and maintain streaks to visualize your consistency and earn achievements."
+                title="Workout Streaks & Achievements"
+                description="Build and maintain workout streaks with your gym buddy to visualize your consistency and earn achievements together."
               />
               <FeatureCard
                 icon={<Zap className="h-10 w-10 text-[#40E0D0]" />}
                 title="AI Fitness Coach"
-                description="Get personalized workout advice and nutrition tips from our AI-powered fitness coach."
+                description="Get personalized workout advice and nutrition tips from our AI-powered fitness coach for you and your gym buddy."
               />
               <FeatureCard
                 icon={<Clock className="h-10 w-10 text-[#40E0D0]" />}
                 title="Progress Timeline"
-                description="View your fitness journey over time with detailed statistics and visualizations."
+                description="View your fitness journey over time with detailed statistics and visualizations alongside your workout partners."
               />
               <FeatureCard
                 icon={<CheckCircle className="h-10 w-10 text-[#40E0D0]" />}
-                title="Goal Setting"
-                description="Set and track personal fitness goals to stay focused and motivated."
+                title="Goal Setting & Accountability"
+                description="Set and track personal fitness goals with your gym buddy to stay focused and accountable together."
               />
             </div>
           </div>

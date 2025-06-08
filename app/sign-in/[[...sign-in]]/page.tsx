@@ -1,4 +1,34 @@
 import { SignIn } from "@clerk/nextjs"
+import { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Sign In to GymBuddies - Access Your Fitness Tracking Dashboard",
+  description: "Sign in to your GymBuddies account to track gym progress, connect with workout buddies, and maintain your fitness streaks. Access your personalized fitness dashboard.",
+  keywords: [
+    "gym buddy login",
+    "fitness tracking login",
+    "workout accountability login",
+    "gym progress tracker signin",
+    "fitness app login",
+    "gymbuddies signin",
+    "fitness dashboard access"
+  ],
+  openGraph: {
+    title: "Sign In to GymBuddies - Access Your Fitness Tracking Dashboard",
+    description: "Sign in to your GymBuddies account to track gym progress and connect with workout buddies.",
+    url: "https://gymbuddies.net/sign-in",
+    siteName: "GymBuddies",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Sign In to GymBuddies - Access Your Fitness Dashboard",
+    description: "Sign in to track gym progress and connect with workout buddies.",
+  },
+  alternates: {
+    canonical: "https://gymbuddies.net/sign-in",
+  },
+}
 
 export default function SignInPage() {
   return (
