@@ -9,20 +9,52 @@ import { Loader2, MapPin, Calendar, Building2, ExternalLink, Trophy, Crown } fro
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton"
+
+interface AttendanceUser {
+  clerkId?: string
+  username?: string
+  firstName?: string
+  lastName?: string
+  profileImage?: string
+  profileImageUrl?: string
+}
+
+interface Attendance {
+  _id: string
+  user?: AttendanceUser
+  createdAt: string
+  date?: string
+  gymName?: string
+  location?: string
+  coordinates?: { lat: number; lng: number }
+  image?: string
+}
+
+interface LeaderboardUser {
+  _id?: string
+  clerkId?: string
+  username?: string
+  firstName?: string
+  lastName?: string
+  profileImage?: string
+  profileImageUrl?: string
+  attendanceCount: number
+  currentStreak: number
+}
 
 export function GlobalTab() {
-  const [attendances, setAttendances] = useState([])
+  const [attendances, setAttendances] = useState<Attendance[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const observer = useRef(null)
-  const lastAttendanceRef = useRef(null)
+  const observer = useRef<IntersectionObserver | null>(null)
+  const lastAttendanceRef = useRef<HTMLDivElement | null>(null)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
-  const [leaderboardUsers, setLeaderboardUsers] = useState([])
+  const [leaderboardUsers, setLeaderboardUsers] = useState<LeaderboardUser[]>([])
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false)
-  // Add a new state variable to track top users' IDs
   const [topUserIds, setTopUserIds] = useState<string[]>([])
 
   const fetchAttendances = async (pageNum = 1, append = false) => {
@@ -31,10 +63,10 @@ export function GlobalTab() {
       loadingState(true)
       setError(null)
 
-      const response = await fetch(`/api/attendance/global?page=${pageNum}&limit=2`)
+      const response = await fetch(`/api/attendance/global?page=${pageNum}&limit=10`)
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch attendances: ${response.statusText}`)
+        throw new Error(`Failed to fetch global feed: ${response.statusText}`)
       }
 
       const data = await response.json()
@@ -47,19 +79,17 @@ export function GlobalTab() {
         }
         setHasMore(data.pagination.hasMore)
       } else {
-        throw new Error(data.error || "Failed to fetch attendances")
+        throw new Error(data.error || "Failed to fetch global feed")
       }
     } catch (err) {
-      console.error("Error fetching attendances:", err)
-      setError(err.message || "Failed to fetch attendances")
+      console.error("Error fetching global feed:", err)
+      setError(err instanceof Error ? err.message : "Failed to fetch global feed")
     } finally {
       setIsLoading(false)
       setIsLoadingMore(false)
     }
   }
 
-  // Fetch leaderboard data
-  // Modify the fetchLeaderboard function to also set the top user IDs
   const fetchLeaderboard = async () => {
     try {
       setIsLoadingLeaderboard(true)
@@ -70,26 +100,39 @@ export function GlobalTab() {
       }
 
       const data = await response.json()
-
-      // Check if data is an array before setting it
+      
+      // The API returns an array directly, not wrapped in success/data
       if (Array.isArray(data)) {
         setLeaderboardUsers(data)
-
-        // Extract the IDs of the top 10 users (or fewer if less than 10)
-        const topIds = data.slice(0, 10).map((user) => user._id)
-        setTopUserIds(topIds)
+        // Store the top 3 users' IDs for highlighting (use _id as fallback)
+        setTopUserIds(data.slice(0, 3).map((user: LeaderboardUser) => user.clerkId || user._id || ""))
       } else {
-        console.error("Unexpected leaderboard data format:", data)
-        setLeaderboardUsers([])
-        setTopUserIds([])
+        throw new Error("Invalid leaderboard response format")
       }
     } catch (err) {
       console.error("Error fetching leaderboard:", err)
-      setLeaderboardUsers([]) // Set empty array on error
-      setTopUserIds([])
     } finally {
       setIsLoadingLeaderboard(false)
     }
+  }
+
+  // Helper function to get user display name
+  const getUserDisplayName = (user?: AttendanceUser) => {
+    if (!user) return "Unknown User"
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`
+    }
+    return user.username || "Unknown User"
+  }
+
+  // Helper function to get user profile image
+  const getUserProfileImage = (user?: AttendanceUser | LeaderboardUser) => {
+    return user?.profileImageUrl || user?.profileImage
+  }
+
+  // Helper function to get user ID for linking
+  const getUserId = (user?: AttendanceUser) => {
+    return user?.clerkId || user?.username || ""
   }
 
   // Initial load
@@ -125,7 +168,7 @@ export function GlobalTab() {
 
   // Setup intersection observer for infinite scrolling
   const lastAttendanceCallback = useCallback(
-    (node) => {
+    (node: HTMLDivElement | null) => {
       if (isLoadingMore) return
 
       if (observer.current) {
@@ -154,7 +197,7 @@ export function GlobalTab() {
     }
   }
 
-  const getMapLink = (coordinates) => {
+  const getMapLink = (coordinates: { lat: number; lng: number }) => {
     if (coordinates) {
       return `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`
     }
@@ -163,254 +206,192 @@ export function GlobalTab() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <LoadingSkeleton 
+        variant="list"
+        className="space-y-4"
+      />
     )
   }
 
   if (error) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-500 mb-4">{error}</p>
-        <Button onClick={() => fetchAttendances()}>Try Again</Button>
+      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-foreground mb-2">Unable to load global feed</h3>
+          <p className="text-sm text-muted-foreground mb-4">{error}</p>
+          <Button onClick={() => fetchAttendances()} variant="outline">
+            Try Again
+          </Button>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
-        <h2 className="text-2xl font-bold">Global Activity</h2>
-        <div className="flex flex-col gap-2">
-          <Button variant="outline" size="sm">
-            Live Updates
-          </Button>
-          <Button
-            onClick={() => setShowLeaderboard(!showLeaderboard)}
-            variant="outline"
-            className="border-[#40E0D0] text-[#40E0D0] hover:bg-[#40E0D0]/10 hover:text-[#40E0D0]"
-          >
-            <Trophy className="mr-2 h-4 w-4" />
-            {showLeaderboard ? "Hide Leaderboard" : "Show Leaderboard"}
-          </Button>
-        </div>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Global Feed</h2>
+        <Button
+          variant={showLeaderboard ? "default" : "outline"}
+          onClick={() => setShowLeaderboard(!showLeaderboard)}
+          className="flex items-center gap-2"
+        >
+          <Trophy className="h-4 w-4" />
+          {showLeaderboard ? "Show Feed" : "Leaderboard"}
+        </Button>
       </div>
 
-      <p className="text-muted-foreground">
-        See gym attendance from GymBuddies users around the world. Get inspired by the global community!
-      </p>
-
-      {/* Global Leaderboard */}
-      {showLeaderboard && (
-        <Card className="border-[#40E0D0]/20">
-          <CardHeader className="bg-[#40E0D0]/10">
+      {showLeaderboard ? (
+        <Card>
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-[#40E0D0]" />
-              Global Leaderboard
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              Top Gym Enthusiasts
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-6">
+          <CardContent>
             {isLoadingLeaderboard ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin text-[#40E0D0]" />
-              </div>
-            ) : leaderboardUsers.length > 0 ? (
+              <LoadingSkeleton variant="list" />
+            ) : (
               <div className="space-y-4">
                 {leaderboardUsers.map((user, index) => (
-                  <div
-                    key={user._id}
-                    className="flex items-start gap-3 p-3 rounded-lg border hover:bg-[#40E0D0]/5 transition-colors"
-                  >
-                    <div
-                      className={`w-6 h-6 flex items-center justify-center rounded-full flex-shrink-0
-                    ${
-                      index === 0
-                        ? "bg-yellow-500"
-                        : index === 1
-                          ? "bg-gray-400"
-                          : index === 2
-                            ? "bg-amber-700"
-                            : "bg-[#40E0D0]/20"
-                    } 
-                    text-white font-bold text-xs`}
-                    >
-                      {index + 1}
-                    </div>
-                    <Avatar className="h-10 w-10 flex-shrink-0">
-                      <AvatarImage src={user.profileImage || user.profileImageUrl} alt={user.username} />
-                      <AvatarFallback>{user.username?.slice(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <Link
-                        href={`/profile/username/${user.username}`}
-                        className="font-medium flex items-center gap-1 hover:text-[#40E0D0] hover:underline truncate"
+                  <div key={user._id || user.clerkId || index} className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${
+                          index === 0
+                            ? "bg-yellow-500 text-black"
+                            : index === 1
+                              ? "bg-gray-400 text-black"
+                              : index === 2
+                                ? "bg-amber-600 text-white"
+                                : "bg-primary text-primary-foreground"
+                        }`}
                       >
-                        {user.firstName} {user.lastName}
-                        {index < 10 && <Crown className="h-3 w-3 text-[#40E0D0] flex-shrink-0" fill="currentColor" />}
-                      </Link>
-                      <p className="text-xs text-muted-foreground truncate">@{user.username}</p>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                        <Trophy className="h-3 w-3 text-[#40E0D0] flex-shrink-0" />
-                        <span className="font-medium">{user.currentStreak || 0} week streak</span>
+                        {index < 3 ? <Crown className="h-4 w-4" /> : index + 1}
                       </div>
-                      <div className="mt-2">
-                        <Badge className="bg-[#40E0D0] text-black whitespace-nowrap text-xs px-2 py-1">
-                          {user.attendanceCount} attendances
-                        </Badge>
-                      </div>
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={getUserProfileImage(user)} alt={getUserDisplayName(user)} />
+                        <AvatarFallback>{getUserDisplayName(user).charAt(0)}</AvatarFallback>
+                      </Avatar>
                     </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{getUserDisplayName(user)}</p>
+                        {index < 3 && <Crown className="h-4 w-4 text-yellow-500" />}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{user.attendanceCount} gym sessions</p>
+                    </div>
+                    <Badge variant="secondary">{user.currentStreak} streak</Badge>
                   </div>
                 ))}
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-muted-foreground">No leaderboard data available.</p>
               </div>
             )}
           </CardContent>
         </Card>
-      )}
-
-      {attendances.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">No attendance records found.</p>
-        </div>
       ) : (
-        <div className="space-y-6">
-          {Object.entries(
-            attendances.reduce((acc, attendance) => {
-              const date = format(new Date(attendance.date), "yyyy-MM-dd")
-              if (!acc[date]) {
-                acc[date] = []
-              }
-              acc[date].push(attendance)
-              return acc
-            }, {})
-          ).map(([date, dateAttendances]) => (
-            <div key={date} className="space-y-4">
-              <div className="flex items-center gap-4">
-                <h3 className="text-lg font-semibold text-muted-foreground">
-                  {format(new Date(date), "MMMM d, yyyy")}
-                </h3>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-              
-              {dateAttendances.map((attendance, index) => {
-                const isLastItem = index === dateAttendances.length - 1
-                const formattedTime = format(new Date(attendance.date), "HH:mm:ss")
+        <div className="space-y-4">
+          {attendances.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No global activity found</p>
+            </div>
+          ) : (
+            attendances.map((attendance, index) => {
+              const isLastItem = index === attendances.length - 1
+              const userId = getUserId(attendance.user)
+              const isTopUser = topUserIds.includes(userId)
 
-                return (
-                  <div
-                    key={attendance._id}
-                    ref={isLastItem ? lastAttendanceCallback : null}
-                    className="bg-card rounded-lg p-4 border"
-                  >
-                    <div className="flex items-start gap-3 mb-3">
-                      <Link href={`/profile/username/${attendance.user?.username || ""}`} className="shrink-0">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={attendance.user?.profileImage} alt={attendance.user?.username} />
-                          <AvatarFallback>
-                            {attendance.user?.firstName?.charAt(0) || ""}
-                            {attendance.user?.lastName?.charAt(0) || ""}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Link>
-                      <div className="flex-1 min-w-0">
-                        <Link
-                          href={`/profile/username/${attendance.user?.username || ""}`}
-                          className="font-medium flex items-center gap-1 hover:text-[#40E0D0] hover:underline truncate"
-                        >
-                          {attendance.user?.firstName} {attendance.user?.lastName}
-                          {topUserIds.includes(attendance.user?._id) && (
-                            <Crown className="h-3 w-3 text-[#40E0D0] flex-shrink-0" fill="currentColor" />
-                          )}
-                        </Link>
-                        <p className="text-xs text-muted-foreground truncate">@{attendance.user?.username}</p>
-                      </div>
+              return (
+                <div
+                  key={attendance._id}
+                  ref={isLastItem ? lastAttendanceCallback : null}
+                  className={`p-4 rounded-lg border transition-colors ${
+                    isTopUser ? "bg-gradient-to-r from-yellow-500/5 to-orange-500/5 border-yellow-500/20" : "bg-card"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="relative">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={getUserProfileImage(attendance.user)} alt={getUserDisplayName(attendance.user)} />
+                        <AvatarFallback>{getUserDisplayName(attendance.user).charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      {isTopUser && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center">
+                          <Crown className="h-3 w-3 text-black" />
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>{formattedTime}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Link
+                          href={`/profile/${userId}`}
+                          className="font-medium hover:underline truncate"
+                        >
+                          {getUserDisplayName(attendance.user)}
+                        </Link>
+                        {isTopUser && <Crown className="h-4 w-4 text-yellow-500 flex-shrink-0" />}
+                        <span className="text-sm text-muted-foreground">checked in</span>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          <span>{format(new Date(attendance.createdAt || attendance.date || Date.now()), "MMM d, h:mm a")}</span>
+                        </div>
                       </div>
 
                       {attendance.gymName && (
-                        <div className="flex flex-col gap-1 text-sm">
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault()
-                              const locationElement = document.getElementById(`global-location-${attendance._id}`)
-                              if (locationElement) {
-                                locationElement.classList.toggle("hidden")
-                              }
-                            }}
-                            className="flex items-center gap-2 hover:text-primary transition-colors text-left"
-                          >
-                            <Building2 className="h-4 w-4 text-muted-foreground" />
-                            <span>{attendance.gymName}</span>
-                          </button>
-
-                          <div id={`global-location-${attendance._id}`} className="hidden pl-6">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <MapPin className="h-4 w-4" />
-                              <span className="break-words">{attendance.location}</span>
-                              <a
-                                href={getMapLink(attendance.coordinates)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center text-primary"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                <span className="sr-only">View on map</span>
-                              </a>
-                            </div>
-                          </div>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
+                          <Building2 className="h-4 w-4" />
+                          <span>{attendance.gymName}</span>
                         </div>
                       )}
 
-                      {attendance.notes && <p className="text-sm mt-2">{attendance.notes}</p>}
+                      {attendance.location && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
+                          <MapPin className="h-4 w-4" />
+                          <span>{attendance.location}</span>
+                          {attendance.coordinates && (
+                            <Link
+                              href={getMapLink(attendance.coordinates)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-1 text-primary hover:underline inline-flex items-center gap-1"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </Link>
+                          )}
+                        </div>
+                      )}
 
                       {attendance.image && (
-                        <div className="mt-2 rounded-md overflow-hidden w-full md:hidden">
+                        <div className="mt-2">
                           <Image
-                            src={attendance.image || "/placeholder.svg"}
-                            alt="Gym attendance"
-                            width={800}
-                            height={450}
-                            className="w-full h-auto object-cover max-h-[300px]"
+                            src={attendance.image}
+                            alt="Gym session"
+                            width={300}
+                            height={200}
+                            className="rounded-lg object-cover max-w-full h-auto"
                           />
                         </div>
                       )}
                     </div>
-
-                    {attendance.image && (
-                      <div className="hidden md:block rounded-md overflow-hidden w-full max-w-[200px]">
-                        <Image
-                          src={attendance.image || "/placeholder.svg"}
-                          alt="Gym attendance"
-                          width={200}
-                          height={150}
-                          className="w-full h-auto object-cover"
-                        />
-                      </div>
-                    )}
                   </div>
-                )
-              })}
-            </div>
-          ))}
+                </div>
+              )
+            })
+          )}
 
           {isLoadingMore && (
             <div className="flex justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <LoadingSkeleton variant="default" title="Loading more..." />
             </div>
           )}
 
           {!hasMore && attendances.length > 0 && (
             <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground">You've reached the end!</p>
+              <p className="text-muted-foreground text-sm">You've reached the end of the global feed</p>
             </div>
           )}
         </div>

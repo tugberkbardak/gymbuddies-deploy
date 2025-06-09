@@ -6,7 +6,7 @@ interface LoadingDotsProps {
   colorClassName?: string // tailwind color utility for the dot background
 }
 
-export function LoadingDots({ className, size = "md", colorClassName = "bg-primary" }: LoadingDotsProps) {
+export function LoadingDots({ className, size = "md", colorClassName = "bg-[#40E0D0]" }: LoadingDotsProps) {
   // Map size prop to Tailwind w/h utilities
   const sizeClasses = {
     sm: "w-1.5 h-1.5",
@@ -26,14 +26,12 @@ export function LoadingDots({ className, size = "md", colorClassName = "bg-prima
           className={cn(
             "rounded-full animate-bounce",
             sizeClasses,
-            colorClassName,
-            // Stagger each dot with a slightly different delay
-            {
-              "[animation-delay:0s]": i === 0,
-              "[animation-delay:0.15s]": i === 1,
-              "[animation-delay:0.3s]": i === 2,
-            }
+            colorClassName
           )}
+          style={{
+            animationDelay: `${i * 0.15}s`,
+            animationDuration: '0.8s'
+          }}
         />
       ))}
     </div>

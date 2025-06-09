@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, Suspense } from "react"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { AttendanceTab } from "@/components/dashboard/attendance-tab"
 import { FriendsTab } from "@/components/dashboard/friends-tab"
@@ -8,8 +8,13 @@ import { GroupsTab } from "@/components/dashboard/groups-tab"
 import { GlobalTab } from "@/components/dashboard/global-tab"
 import { FindBuddyTab } from "@/components/dashboard/find-buddy-tab"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
-import { Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { 
+  AttendanceTabLoading, 
+  FriendsTabLoading, 
+  FindBuddyTabLoading, 
+  GlobalTabLoading, 
+  GroupsTabLoading 
+} from "@/components/ui/loading-skeleton"
 
 interface DashboardTabsProps {
   defaultTab: string
@@ -21,11 +26,7 @@ export function DashboardTabs({ defaultTab, pendingFriendRequestsCount, isPremiu
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const containerRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState(defaultTab)
-  const [visibleTab, setVisibleTab] = useState(defaultTab) // Tab that's actually visible/loaded
-  const [isLoading, setIsLoading] = useState(false)
-  const [loadingTab, setLoadingTab] = useState<string | null>(null)
 
   // Define the tab order for navigation
   const tabOrder = ["attendance", "friends", "find-buddy", "global", "groups"]
@@ -35,93 +36,69 @@ export function DashboardTabs({ defaultTab, pendingFriendRequestsCount, isPremiu
     const tabFromUrl = searchParams.get("tab")
     if (tabFromUrl && tabOrder.includes(tabFromUrl)) {
       setActiveTab(tabFromUrl)
-      setLoadingTab(tabFromUrl) // Set loading state immediately
-      setIsLoading(true)
     }
-  }, [searchParams, tabOrder])
+  }, [searchParams])
 
-  // Handle loading the tab content after the tab indicator has moved
-  useEffect(() => {
-    if (activeTab !== visibleTab) {
-      // Use a short timeout to allow the tab indicator to move first
-      const timer = setTimeout(() => {
-        setVisibleTab(activeTab)
-        setIsLoading(false)
-        setLoadingTab(null)
-      }, 300) // Slightly shorter than the animation duration
-
-      return () => clearTimeout(timer)
-    }
-  }, [activeTab, visibleTab])
-
-  // Render loading state
-  const renderLoadingState = () => (
-    <div className="flex flex-col items-center justify-center py-12 space-y-4">
-      <div className="relative">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded-full" />
-      </div>
-      <p className="text-muted-foreground">
-        Loading {loadingTab ? loadingTab.charAt(0).toUpperCase() + loadingTab.slice(1) : ""}...
-      </p>
-    </div>
-  )
-
-  // Render the appropriate tab content
-  const renderTabContent = () => {
-    switch (visibleTab) {
+  // Render the appropriate tab content with proper loading states
+  const renderTabContent = (tabValue: string) => {
+    switch (tabValue) {
       case "attendance":
         return (
-          <TabsContent value="attendance" forceMount className="space-y-4 block">
-            <AttendanceTab />
+          <TabsContent key={tabValue} value="attendance" className="space-y-4 m-0">
+            <Suspense fallback={<AttendanceTabLoading />}>
+              <AttendanceTab />
+            </Suspense>
           </TabsContent>
         )
       case "friends":
         return (
-          <TabsContent value="friends" forceMount className="space-y-4 block">
-            <FriendsTab />
+          <TabsContent key={tabValue} value="friends" className="space-y-4 m-0">
+            <Suspense fallback={<FriendsTabLoading />}>
+              <FriendsTab />
+            </Suspense>
           </TabsContent>
         )
       case "find-buddy":
         return (
-          <TabsContent value="find-buddy" forceMount className="space-y-4 block">
-            <FindBuddyTab />
+          <TabsContent key={tabValue} value="find-buddy" className="space-y-4 m-0">
+            <Suspense fallback={<FindBuddyTabLoading />}>
+              <FindBuddyTab />
+            </Suspense>
           </TabsContent>
         )
       case "global":
         return (
-          <TabsContent value="global" forceMount className="space-y-4 block">
-            <GlobalTab />
+          <TabsContent key={tabValue} value="global" className="space-y-4 m-0">
+            <Suspense fallback={<GlobalTabLoading />}>
+              <GlobalTab />
+            </Suspense>
           </TabsContent>
         )
       case "groups":
         return (
-          <TabsContent value="groups" forceMount className="space-y-4 block">
-            <GroupsTab isPremium={true} userHasPremium={isPremiumUser} />
+          <TabsContent key={tabValue} value="groups" className="space-y-4 m-0">
+            <Suspense fallback={<GroupsTabLoading />}>
+              <GroupsTab isPremium={true} userHasPremium={isPremiumUser} />
+            </Suspense>
           </TabsContent>
         )
       default:
         return (
-          <TabsContent value="attendance" forceMount className="space-y-4 block">
-            <AttendanceTab />
+          <TabsContent key={tabValue} value="attendance" className="space-y-4 m-0">
+            <Suspense fallback={<AttendanceTabLoading />}>
+              <AttendanceTab />
+            </Suspense>
           </TabsContent>
         )
     }
   }
 
   return (
-    <div ref={containerRef} className="relative pb-16">
+    <div className="relative pb-16">
       <Tabs value={activeTab} className="w-full">
-        <div className="relative overflow-hidden">
-          {/* Tab content */}
-          <div className={cn("transition-all duration-300 transform", isLoading ? "opacity-0" : "opacity-100")}>{renderTabContent()}</div>
-
-          {/* Loading overlay */}
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              {renderLoadingState()}
-            </div>
-          )}
+        <div className="relative">
+          {/* Render all tab contents but only show the active one */}
+          {tabOrder.map((tab) => renderTabContent(tab))}
         </div>
       </Tabs>
     </div>
